@@ -40,6 +40,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.ChoreService;
 import org.apache.hadoop.hbase.CoordinatedStateManager;
+import org.apache.hadoop.hbase.TableDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
@@ -53,13 +55,13 @@ import org.apache.hadoop.hbase.Server;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
 import org.apache.hadoop.hbase.TableDescriptors;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ClusterConnection;
 import org.apache.hadoop.hbase.client.HConnectionTestingUtility;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coordination.BaseCoordinatedStateManager;
 import org.apache.hadoop.hbase.coordination.SplitLogManagerCoordination;
 import org.apache.hadoop.hbase.coordination.SplitLogManagerCoordination.SplitLogManagerDetails;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.executor.ExecutorService;
 import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.master.CatalogJanitor.SplitParentFirstComparator;
@@ -351,13 +353,18 @@ public class TestCatalogJanitor {
       return new TableDescriptors() {
         @Override
         public HTableDescriptor remove(TableName tablename) throws IOException {
-          // TODO Auto-generated method stub
+          // noop
           return null;
         }
 
         @Override
         public Map<String, HTableDescriptor> getAll() throws IOException {
-          // TODO Auto-generated method stub
+          // noop
+          return null;
+        }
+
+        @Override public Map<String, TableDescriptor> getAllDescriptors() throws IOException {
+          // noop
           return null;
         }
 
@@ -368,14 +375,24 @@ public class TestCatalogJanitor {
         }
 
         @Override
+        public TableDescriptor getDescriptor(TableName tablename)
+            throws IOException {
+          return createTableDescriptor();
+        }
+
+        @Override
         public Map<String, HTableDescriptor> getByNamespace(String name) throws IOException {
           return null;
         }
 
         @Override
         public void add(HTableDescriptor htd) throws IOException {
-          // TODO Auto-generated method stub
+          // noop
+        }
 
+        @Override
+        public void add(TableDescriptor htd) throws IOException {
+          // noop
         }
         @Override
         public void setCacheOn() throws IOException {
@@ -536,6 +553,11 @@ public class TestCatalogJanitor {
 
     @Override
     public TableNamespaceManager getTableNamespaceManager() {
+      return null;
+    }
+
+    @Override
+    public TableStateManager getTableStateManager() {
       return null;
     }
 
@@ -1134,6 +1156,11 @@ public class TestCatalogJanitor {
   private HTableDescriptor createHTableDescriptor() {
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf("t"));
     htd.addFamily(new HColumnDescriptor("f"));
+    return htd;
+  }
+
+  private TableDescriptor createTableDescriptor() {
+    TableDescriptor htd = new TableDescriptor(createHTableDescriptor(), TableState.State.ENABLED);
     return htd;
   }
 

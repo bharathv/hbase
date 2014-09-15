@@ -50,6 +50,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotDisabledException;
 import org.apache.hadoop.hbase.Waiter;
 import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -388,12 +389,14 @@ public class TestTableLockManager {
     choreService.scheduleChore(alterThread);
     choreService.scheduleChore(splitThread);
     TEST_UTIL.waitTableEnabled(tableName);
+
     while (true) {
       List<HRegionInfo> regions = admin.getTableRegions(tableName);
       LOG.info(String.format("Table #regions: %d regions: %s:", regions.size(), regions));
       assertEquals(admin.getTableDescriptor(tableName), desc);
       for (HRegion region : TEST_UTIL.getMiniHBaseCluster().getRegions(tableName)) {
-        assertEquals(desc, region.getTableDesc());
+        HTableDescriptor regionTableDesc = region.getTableDesc();
+        assertEquals(desc, regionTableDesc);
       }
       if (regions.size() >= 5) {
         break;

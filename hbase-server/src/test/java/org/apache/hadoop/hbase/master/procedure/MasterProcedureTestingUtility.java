@@ -35,7 +35,8 @@ import org.apache.hadoop.hbase.MetaTableAccessor;
 import org.apache.hadoop.hbase.RegionLocations;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.TableStateManager;
+import org.apache.hadoop.hbase.client.TableState;
+import org.apache.hadoop.hbase.master.TableStateManager;
 import org.apache.hadoop.hbase.client.BufferedMutator;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Durability;
@@ -188,13 +189,13 @@ public class MasterProcedureTestingUtility {
   public static void validateTableIsEnabled(final HMaster master, final TableName tableName)
       throws IOException {
     TableStateManager tsm = master.getAssignmentManager().getTableStateManager();
-    assertTrue(tsm.isTableState(tableName, ZooKeeperProtos.Table.State.ENABLED));
+    assertTrue(tsm.isTableState(tableName, TableState.State.ENABLED));
   }
 
   public static void validateTableIsDisabled(final HMaster master, final TableName tableName)
       throws IOException {
     TableStateManager tsm = master.getAssignmentManager().getTableStateManager();
-    assertTrue(tsm.isTableState(tableName, ZooKeeperProtos.Table.State.DISABLED));
+    assertTrue(tsm.isTableState(tableName, TableState.State.DISABLED));
   }
 
   /**

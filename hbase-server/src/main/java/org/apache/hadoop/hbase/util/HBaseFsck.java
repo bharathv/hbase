@@ -84,6 +84,7 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.MetaTableAccessor;
 import org.apache.hadoop.hbase.RegionLocations;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.classification.InterfaceAudience;
@@ -107,12 +108,14 @@ import org.apache.hadoop.hbase.client.RowMutations;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.io.FileLink;
 import org.apache.hadoop.hbase.io.HFileLink;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.master.MasterFileSystem;
 import org.apache.hadoop.hbase.master.RegionState;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos.AdminService.BlockingInterface;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.protobuf.generated.ZooKeeperProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
@@ -128,9 +131,6 @@ import org.apache.hadoop.hbase.util.hbck.TableIntegrityErrorHandler;
 import org.apache.hadoop.hbase.util.hbck.TableIntegrityErrorHandlerImpl;
 import org.apache.hadoop.hbase.util.hbck.TableLockChecker;
 import org.apache.hadoop.hbase.wal.WALSplitter;
-import org.apache.hadoop.hbase.zookeeper.MetaTableLocator;
-import org.apache.hadoop.hbase.zookeeper.ZKTableStateClientSideReader;
-import org.apache.hadoop.hbase.zookeeper.ZKTableStateManager;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
@@ -1337,9 +1337,9 @@ public class HBaseFsck extends Configured implements Closeable {
         modTInfo = new TableInfo(tableName);
         tablesInfo.put(tableName, modTInfo);
         try {
-          HTableDescriptor htd =
+          TableDescriptor htd =
               FSTableDescriptors.getTableDescriptorFromFs(fs, hbaseRoot, tableName);
-          modTInfo.htds.add(htd);
+          modTInfo.htds.add(htd.getHTableDescriptor());
         } catch (IOException ioe) {
           if (!orphanTableDirs.containsKey(tableName)) {
             LOG.warn("Unable to read .tableinfo from " + hbaseRoot, ioe);
@@ -1394,7 +1394,7 @@ public class HBaseFsck extends Configured implements Closeable {
     for (String columnfamimly : columns) {
       htd.addFamily(new HColumnDescriptor(columnfamimly));
     }
-    fstd.createTableDescriptor(htd, true);
+    fstd.createTableDescriptor(new TableDescriptor(htd, TableState.State.ENABLED), true);
     return true;
   }
 
@@ -1442,7 +1442,7 @@ public class HBaseFsck extends Configured implements Closeable {
           if (tableName.equals(htds[j].getTableName())) {
             HTableDescriptor htd = htds[j];
             LOG.info("fixing orphan table: " + tableName + " from cache");
-            fstd.createTableDescriptor(htd, true);
+            fstd.createTableDescriptor(new TableDescriptor(htd, TableState.State.ENABLED), true);
             j++;
             iter.remove();
           }
@@ -1802,19 +1802,16 @@ public class HBaseFsck extends Configured implements Closeable {
    * @throws IOException
    */
   private void loadDisabledTables()
-  throws ZooKeeperConnectionException, IOException {
+  throws IOException {
     HConnectionManager.execute(new HConnectable<Void>(getConf()) {
       @Override
       public Void connect(HConnection connection) throws IOException {
-        try {
-          for (TableName tableName :
-              ZKTableStateClientSideReader.getDisabledOrDisablingTables(zkw)) {
-            disabledTables.add(tableName);
+        TableName[] tables = connection.listTableNames();
+        for (TableName table : tables) {
+          if (connection.getTableState(table)
+              .inStates(TableState.State.DISABLED, TableState.State.DISABLING)) {
+            disabledTables.add(table);
           }
-        } catch (KeeperException ke) {
-          throw new IOException(ke);
-        } catch (InterruptedException e) {
-          throw new InterruptedIOException();
         }
         return null;
       }
@@ -3551,7 +3548,12 @@ public class HBaseFsck extends Configured implements Closeable {
    */
   private void checkAndFixOrphanedTableZNodes()
       throws IOException, KeeperException, InterruptedException {
-    Set<TableName> enablingTables = ZKTableStateClientSideReader.getEnablingTables(zkw);
+    Set<TableName> enablingTables = null;
+    for (TableName tableName: admin.listTableNames()) {
+      if (connection.getTableState(tableName).equals(HBaseProtos.TableState.State.ENABLING)) {
+        enablingTables.add(tableName);
+      }
+    }
     String msg;
     TableInfo tableInfo;
 
@@ -3570,21 +3572,12 @@ public class HBaseFsck extends Configured implements Closeable {
     }
 
     if (orphanedTableZNodes.size() > 0 && this.fixTableZNodes) {
-      ZKTableStateManager zkTableStateMgr = new ZKTableStateManager(zkw);
-
       for (TableName tableName : orphanedTableZNodes) {
-        try {
-          // Set the table state to be disabled so that if we made mistake, we can trace
-          // the history and figure it out.
-          // Another choice is to call checkAndRemoveTableState() to delete the orphaned ZNode.
-          // Both approaches works.
-          zkTableStateMgr.setTableState(tableName, ZooKeeperProtos.Table.State.DISABLED);
-        } catch (CoordinatedStateException e) {
-          // This exception should not happen here
-          LOG.error(
-            "Got a CoordinatedStateException while fixing the ENABLING table znode " + tableName,
-            e);
-        }
+        // Set the table state to be disabled so that if we made mistake, we can trace
+        // the history and figure it out.
+        // Another choice is to call checkAndRemoveTableState() to delete the orphaned ZNode.
+        // Both approaches works.
+        admin.disableTable(tableName);
       }
     }
   }

@@ -88,6 +88,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.client.replication.ReplicationAdmin;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
@@ -2900,7 +2901,7 @@ public class TestHBaseFsck {
 
     try {
       TEST_UTIL.getHBaseCluster().getMaster().getAssignmentManager().getTableStateManager()
-      .setTableState(table, ZooKeeperProtos.Table.State.ENABLING);
+      .setTableState(table, TableState.State.ENABLING);
 
       try {
         setupTable(table);

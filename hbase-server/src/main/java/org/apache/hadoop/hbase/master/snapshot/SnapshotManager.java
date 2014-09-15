@@ -52,6 +52,7 @@ import org.apache.hadoop.hbase.Stoppable;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.classification.InterfaceAudience;
 import org.apache.hadoop.hbase.classification.InterfaceStability;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.errorhandling.ForeignException;
 import org.apache.hadoop.hbase.executor.ExecutorService;
 import org.apache.hadoop.hbase.ipc.RpcServer;
@@ -622,7 +623,7 @@ public class SnapshotManager extends MasterProcedureManager implements Stoppable
     TableName snapshotTable = TableName.valueOf(snapshot.getTable());
     AssignmentManager assignmentMgr = master.getAssignmentManager();
     if (assignmentMgr.getTableStateManager().isTableState(snapshotTable,
-        ZooKeeperProtos.Table.State.ENABLED)) {
+      TableState.State.ENABLED)) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Table enabled, starting distributed snapshot for "
             + ClientSnapshotDescriptionUtils.toString(snapshot));
@@ -634,7 +635,7 @@ public class SnapshotManager extends MasterProcedureManager implements Stoppable
     }
     // For disabled table, snapshot is created by the master
     else if (assignmentMgr.getTableStateManager().isTableState(snapshotTable,
-        ZooKeeperProtos.Table.State.DISABLED)) {
+        TableState.State.DISABLED)) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Table is disabled, running snapshot entirely on master "
             + ClientSnapshotDescriptionUtils.toString(snapshot));
@@ -801,7 +802,7 @@ public class SnapshotManager extends MasterProcedureManager implements Stoppable
     // Execute the restore/clone operation
     if (MetaTableAccessor.tableExists(master.getConnection(), tableName)) {
       if (master.getAssignmentManager().getTableStateManager().isTableState(
-          TableName.valueOf(snapshot.getTable()), ZooKeeperProtos.Table.State.ENABLED)) {
+          TableName.valueOf(snapshot.getTable()), TableState.State.ENABLED)) {
         throw new UnsupportedOperationException("Table '" +
             TableName.valueOf(snapshot.getTable()) + "' must be disabled in order to " +
             "perform a restore operation" +

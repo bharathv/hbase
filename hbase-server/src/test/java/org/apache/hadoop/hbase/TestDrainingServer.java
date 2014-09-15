@@ -142,7 +142,7 @@ public class TestDrainingServer {
     Mockito.when(master.getServerManager()).thenReturn(serverManager);
 
     am = new AssignmentManager(server, serverManager,
-        balancer, startupMasterExecutor("mockExecutorService"), null, null);
+        balancer, startupMasterExecutor("mockExecutorService"), null, null, null);
 
     Mockito.when(master.getAssignmentManager()).thenReturn(am);
     Mockito.when(master.getZooKeeper()).thenReturn(zkWatcher);
@@ -248,7 +248,7 @@ public class TestDrainingServer {
     drainedServers.add(SERVERNAME_D);
 
     am = new AssignmentManager(server, serverManager,
-      balancer, startupMasterExecutor("mockExecutorServiceBulk"), null, null);
+      balancer, startupMasterExecutor("mockExecutorServiceBulk"), null, null, null);
 
     Mockito.when(master.getAssignmentManager()).thenReturn(am);
 

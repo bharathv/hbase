@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.InvalidFamilyOperationException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.classification.InterfaceAudience;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.master.MasterCoprocessorHost;
 import org.apache.hadoop.hbase.procedure2.StateMachineProcedure;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
@@ -357,7 +358,7 @@ public class DeleteColumnFamilyProcedure
   private void reOpenAllRegionsIfTableIsOnline(final MasterProcedureEnv env) throws IOException {
     // This operation only run when the table is enabled.
     if (!env.getMasterServices().getAssignmentManager().getTableStateManager()
-        .isTableState(getTableName(), ZooKeeperProtos.Table.State.ENABLED)) {
+        .isTableState(getTableName(), TableState.State.ENABLED)) {
       return;
     }
 

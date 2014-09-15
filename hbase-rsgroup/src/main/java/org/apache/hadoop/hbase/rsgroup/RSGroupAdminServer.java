@@ -45,6 +45,7 @@ import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.classification.InterfaceAudience;
+import org.apache.hadoop.hbase.client.TableState;
 import org.apache.hadoop.hbase.constraint.ConstraintException;
 import org.apache.hadoop.hbase.master.AssignmentManager;
 import org.apache.hadoop.hbase.master.LoadBalancer;
@@ -269,8 +270,8 @@ public class RSGroupAdminServer implements RSGroupAdmin {
     }
     for(TableName table: tables) {
       if (master.getAssignmentManager().getTableStateManager().isTableState(table,
-          ZooKeeperProtos.Table.State.DISABLED,
-          ZooKeeperProtos.Table.State.DISABLING)) {
+          TableState.State.DISABLED,
+          TableState.State.DISABLING)) {
         LOG.debug("Skipping move regions because the table" + table + " is disabled.");
         continue;
       }
