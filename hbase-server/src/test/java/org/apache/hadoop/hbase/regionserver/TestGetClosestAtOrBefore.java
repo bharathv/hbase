@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
@@ -37,12 +38,15 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MetaTableAccessor;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
+import org.apache.hadoop.hbase.client.CoprocessorDescriptorBuilder;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
+import org.apache.hadoop.hbase.coprocessor.MultiRowMutationEndpoint;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.testclassification.RegionServerTests;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -87,8 +91,9 @@ public class TestGetClosestAtOrBefore  {
   public void testUsingMetaAndBinary() throws IOException {
     FileSystem filesystem = FileSystem.get(conf);
     Path rootdir = UTIL.getDataTestDirOnTestFS();
+
     // Up flush size else we bind up when we use default catalog flush of 16k.
-    TableDescriptorBuilder metaBuilder = UTIL.getMetaTableDescriptorBuilder()
+    TableDescriptorBuilder metaBuilder = createMetaTableDescriptorBuilder(UTIL.getConfiguration())
             .setMemStoreFlushSize(64 * 1024 * 1024);
 
     HRegion mr = HBaseTestingUtility.createRegionAndWAL(HRegionInfo.FIRST_META_REGIONINFO,
@@ -368,6 +373,56 @@ public class TestGetClosestAtOrBefore  {
       }
     }
   }
-
+  private static TableDescriptorBuilder createMetaTableDescriptorBuilder(final Configuration conf)
+      throws IOException {
+    // TODO We used to set CacheDataInL1 for META table. When we have BucketCache in file mode, now
+    // the META table data goes to File mode BC only. Test how that affect the system. If too much,
+    // we have to rethink about adding back the setCacheDataInL1 for META table CFs.
+    return TableDescriptorBuilder.newBuilder(TableName.META_TABLE_NAME)
+        .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(HConstants.CATALOG_FAMILY)
+            .setMaxVersions(conf.getInt(HConstants.HBASE_META_VERSIONS,
+                HConstants.DEFAULT_HBASE_META_VERSIONS))
+            .setInMemory(true)
+            .setBlocksize(conf.getInt(HConstants.HBASE_META_BLOCK_SIZE,
+                HConstants.DEFAULT_HBASE_META_BLOCK_SIZE))
+            .setScope(HConstants.REPLICATION_SCOPE_LOCAL)
+            // Disable blooms for meta.  Needs work.  Seems to mess w/ getClosestOrBefore.
+            .setBloomFilterType(BloomType.NONE)
+            .build())
+        .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(HConstants.TABLE_FAMILY)
+            .setMaxVersions(conf.getInt(HConstants.HBASE_META_VERSIONS,
+                HConstants.DEFAULT_HBASE_META_VERSIONS))
+            .setInMemory(true)
+            .setBlocksize(8 * 1024)
+            .setScope(HConstants.REPLICATION_SCOPE_LOCAL)
+            // Disable blooms for meta.  Needs work.  Seems to mess w/ getClosestOrBefore.
+            .setBloomFilterType(BloomType.NONE)
+            .build())
+        .setColumnFamily(ColumnFamilyDescriptorBuilder
+            .newBuilder(HConstants.REPLICATION_BARRIER_FAMILY)
+            .setMaxVersions(HConstants.ALL_VERSIONS)
+            .setInMemory(true)
+            .setScope(HConstants.REPLICATION_SCOPE_LOCAL)
+            // Disable blooms for meta.  Needs work.  Seems to mess w/ getClosestOrBefore.
+            .setBloomFilterType(BloomType.NONE)
+            .build())
+        .setColumnFamily(ColumnFamilyDescriptorBuilder
+            .newBuilder(HConstants.NAMESPACE_FAMILY)
+            .setMaxVersions(conf.getInt(HConstants.HBASE_META_VERSIONS,
+                HConstants.DEFAULT_HBASE_META_VERSIONS))
+            .setInMemory(true)
+            .setBlocksize(conf.getInt(HConstants.HBASE_META_BLOCK_SIZE,
+                HConstants.DEFAULT_HBASE_META_BLOCK_SIZE))
+            .setScope(HConstants.REPLICATION_SCOPE_LOCAL)
+            // Disable blooms for meta.  Needs work.  Seems to mess w/ getClosestOrBefore.
+            .setBloomFilterType(BloomType.NONE)
+            .build())
+        .setCoprocessor(CoprocessorDescriptorBuilder.newBuilder(
+            MultiRowMutationEndpoint.class.getName())
+            .setPriority(Coprocessor.PRIORITY_SYSTEM)
+            .build())
+        .setRegionReplication(conf.getInt(HConstants.META_REPLICAS_NUM,
+            HConstants.DEFAULT_META_REPLICA_NUM));
+  }
 }
 
