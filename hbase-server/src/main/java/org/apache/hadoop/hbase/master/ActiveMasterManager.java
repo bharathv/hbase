@@ -20,6 +20,7 @@ package org.apache.hadoop.hbase.master;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
@@ -57,9 +58,15 @@ public class ActiveMasterManager extends ZKListener {
   final AtomicBoolean clusterHasActiveMaster = new AtomicBoolean(false);
   final AtomicBoolean clusterShutDown = new AtomicBoolean(false);
 
+  // This server's information.
   private final ServerName sn;
   private int infoPort;
   private final Server master;
+
+  // Active master's server name. Non-null if cluster has an active master unless there
+  // is an issue fetching the active master's server name.
+  // ServerName is immutable, so we don't need heavy synchronization around it.
+  private final AtomicReference<ServerName> activeMasterServerName;
 
   /**
    * @param watcher
@@ -71,6 +78,7 @@ public class ActiveMasterManager extends ZKListener {
     watcher.registerListener(this);
     this.sn = sn;
     this.master = master;
+    activeMasterServerName = new AtomicReference<>();
   }
 
   // will be set after jetty server is started
@@ -107,6 +115,31 @@ public class ActiveMasterManager extends ZKListener {
   }
 
   /**
+   * Fetches the active master's ServerName from zookeeper.
+   */
+  private void fetchAndSetActiveMasterServerName() {
+    LOG.debug("Attempting to fetch active master sn from zk");
+    try {
+      activeMasterServerName.set(MasterAddressTracker.getMasterAddress(watcher));
+    } catch (IOException | KeeperException e) {
+      // Log and ignore for now and re-fetch later if needed.
+      LOG.error("Error fetching active master information", e);
+    }
+  }
+
+  public ServerName getActiveMasterServerName() {
+    if (!clusterHasActiveMaster.get()) return null;
+    ServerName sname = activeMasterServerName.get();
+    if (sname != null) {
+      return sname;
+    }
+    // This happens if the data was not fetched earlier for some reason.
+    fetchAndSetActiveMasterServerName();
+    // It could still be null, but return whatever we have.
+    return activeMasterServerName.get();
+  }
+
+  /**
    * Handle a change in the master node.  Doesn't matter whether this was called
    * from a nodeCreated or nodeDeleted event because there are no guarantees
    * that the current state of the master node matches the event at the time of
@@ -134,6 +167,9 @@ public class ActiveMasterManager extends ZKListener {
           // Notify any thread waiting to become the active master
           clusterHasActiveMaster.notifyAll();
         }
+        // Reset the active master sn. Will be re-fetched later if needed.
+        // We don't want to make a synchronous RPC under a monitor.
+        activeMasterServerName.set(null);
       }
     } catch (KeeperException ke) {
       master.abort("Received an unexpected KeeperException, aborting", ke);
@@ -178,10 +214,14 @@ public class ActiveMasterManager extends ZKListener {
           // We are the master, return
           startupStatus.setStatus("Successfully registered as active master.");
           this.clusterHasActiveMaster.set(true);
+          activeMasterServerName.set(sn);
           LOG.info("Registered as active master=" + this.sn);
           return true;
         }
 
+        // Invalidate the active master name so that subsequent requests do not get any stale
+        // master information. Will ne re-fetched if needed.
+        activeMasterServerName.set(null);
         // There is another active master running elsewhere or this is a restart
         // and the master ephemeral node has not expired yet.
         this.clusterHasActiveMaster.set(true);
