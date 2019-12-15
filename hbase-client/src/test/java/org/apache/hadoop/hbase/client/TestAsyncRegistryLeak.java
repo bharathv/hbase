@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.SmallTests;
 import org.apache.hadoop.hbase.util.FutureUtils;
@@ -70,7 +71,7 @@ public class TestAsyncRegistryLeak {
 
   @BeforeClass
   public static void setUp() {
-    CONF.setClass(AsyncRegistryFactory.REGISTRY_IMPL_CONF_KEY, AsyncRegistryForTest.class,
+    CONF.setClass(HConstants.REGISTRY_IMPL_CONF_KEY, AsyncRegistryForTest.class,
       AsyncRegistry.class);
   }
 
