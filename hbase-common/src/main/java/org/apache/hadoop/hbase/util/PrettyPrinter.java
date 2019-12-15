@@ -19,7 +19,9 @@
 
 package org.apache.hadoop.hbase.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -197,7 +199,11 @@ public final class PrettyPrinter {
    * @return Pretty printed string for the collection.
    */
   public static String toString(Collection<?> collection) {
-    return collection.stream().map(Objects::toString).collect(Collectors.toList()).toString();
+    List<String> stringList = new ArrayList<>();
+    for (Object o: collection) {
+      stringList.add(Objects.toString(o));
+    }
+    return "[" + String.join(",", stringList) + "]";
   }
 
 }

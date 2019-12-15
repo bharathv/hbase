@@ -37,8 +37,11 @@ public class TestFromClientSideWithCoprocessor extends TestFromClientSide {
   public static final HBaseClassTestRule CLASS_RULE =
     HBaseClassTestRule.forClass(TestFromClientSideWithCoprocessor.class);
 
+  TestFromClientSideWithCoprocessor() {}
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
-    initialize(MultiRowMutationEndpoint.class, NoOpScanPolicyObserver.class);
+    initialize(ZKAsyncRegistry.class, 1, MultiRowMutationEndpoint.class,
+        NoOpScanPolicyObserver.class);
   }
 }

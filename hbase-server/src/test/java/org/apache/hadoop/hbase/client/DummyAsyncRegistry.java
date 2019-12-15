@@ -18,6 +18,7 @@
 package org.apache.hadoop.hbase.client;
 
 import java.util.concurrent.CompletableFuture;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.RegionLocations;
 import org.apache.hadoop.hbase.ServerName;
 
@@ -27,7 +28,7 @@ import org.apache.hadoop.hbase.ServerName;
  */
 public class DummyAsyncRegistry implements AsyncRegistry {
 
-  public static final String REGISTRY_IMPL_CONF_KEY = AsyncRegistryFactory.REGISTRY_IMPL_CONF_KEY;
+  public static final String REGISTRY_IMPL_CONF_KEY = HConstants.REGISTRY_IMPL_CONF_KEY;
 
   @Override
   public CompletableFuture<RegionLocations> getMetaRegionLocation() {
