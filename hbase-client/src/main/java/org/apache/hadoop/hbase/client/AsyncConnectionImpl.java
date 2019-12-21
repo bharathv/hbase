@@ -257,7 +257,7 @@ class AsyncConnectionImpl implements AsyncConnection {
   CompletableFuture<MasterService.Interface> getMasterStub() {
     return ConnectionUtils.getOrFetch(masterStub, masterStubMakeFuture, false, () -> {
       CompletableFuture<MasterService.Interface> future = new CompletableFuture<>();
-      addListener(registry.getMasterAddress(), (addr, error) -> {
+      addListener(registry.getActiveMaster(), (addr, error) -> {
         if (error != null) {
           future.completeExceptionally(error);
         } else if (addr == null) {
@@ -368,7 +368,7 @@ class AsyncConnectionImpl implements AsyncConnection {
   @Override
   public CompletableFuture<Hbck> getHbck() {
     CompletableFuture<Hbck> future = new CompletableFuture<>();
-    addListener(registry.getMasterAddress(), (sn, error) -> {
+    addListener(registry.getActiveMaster(), (sn, error) -> {
       if (error != null) {
         future.completeExceptionally(error);
       } else {

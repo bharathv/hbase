@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,16 +18,16 @@
 package org.apache.hadoop.hbase.client;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.yetus.audience.InterfaceAudience;
 import org.apache.hadoop.hbase.util.ReflectionUtils;
+import org.apache.yetus.audience.InterfaceAudience;
 
 /**
- * Get instance of configured Registry.
+ * Factory class to get the instance of configured registry.
  */
 @InterfaceAudience.Private
 final class AsyncRegistryFactory {
 
-  static final String REGISTRY_IMPL_CONF_KEY = "hbase.client.registry.impl";
+  static final String CLIENT_REGISTRY_IMPL_CONF_KEY = "hbase.client.registry.impl";
 
   private AsyncRegistryFactory() {
   }
@@ -37,7 +37,7 @@ final class AsyncRegistryFactory {
    */
   static AsyncRegistry getRegistry(Configuration conf) {
     Class<? extends AsyncRegistry> clazz =
-        conf.getClass(REGISTRY_IMPL_CONF_KEY, ZKAsyncRegistry.class, AsyncRegistry.class);
+        conf.getClass(CLIENT_REGISTRY_IMPL_CONF_KEY, ZKAsyncRegistry.class, AsyncRegistry.class);
     return ReflectionUtils.newInstance(clazz, conf);
   }
 }

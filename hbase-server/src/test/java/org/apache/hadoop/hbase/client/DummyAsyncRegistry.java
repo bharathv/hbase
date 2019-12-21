@@ -27,10 +27,11 @@ import org.apache.hadoop.hbase.ServerName;
  */
 public class DummyAsyncRegistry implements AsyncRegistry {
 
-  public static final String REGISTRY_IMPL_CONF_KEY = AsyncRegistryFactory.REGISTRY_IMPL_CONF_KEY;
+  public static final String REGISTRY_IMPL_CONF_KEY =
+      AsyncRegistryFactory.CLIENT_REGISTRY_IMPL_CONF_KEY;
 
   @Override
-  public CompletableFuture<RegionLocations> getMetaRegionLocation() {
+  public CompletableFuture<RegionLocations> getMetaRegionLocations() {
     return null;
   }
 
@@ -40,7 +41,7 @@ public class DummyAsyncRegistry implements AsyncRegistry {
   }
 
   @Override
-  public CompletableFuture<ServerName> getMasterAddress() {
+  public CompletableFuture<ServerName> getActiveMaster() {
     return null;
   }
 

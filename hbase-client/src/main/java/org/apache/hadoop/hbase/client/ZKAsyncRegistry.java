@@ -191,7 +191,7 @@ class ZKAsyncRegistry implements AsyncRegistry {
   }
 
   @Override
-  public CompletableFuture<RegionLocations> getMetaRegionLocation() {
+  public CompletableFuture<RegionLocations> getMetaRegionLocations() {
     CompletableFuture<RegionLocations> future = new CompletableFuture<>();
     addListener(
       zk.list(znodePaths.baseZNode)
@@ -217,7 +217,7 @@ class ZKAsyncRegistry implements AsyncRegistry {
   }
 
   @Override
-  public CompletableFuture<ServerName> getMasterAddress() {
+  public CompletableFuture<ServerName> getActiveMaster() {
     return getAndConvert(znodePaths.masterAddressZNode, ZKAsyncRegistry::getMasterProto)
         .thenApply(proto -> {
           if (proto == null) {

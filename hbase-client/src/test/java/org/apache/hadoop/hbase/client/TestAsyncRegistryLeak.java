@@ -70,7 +70,7 @@ public class TestAsyncRegistryLeak {
 
   @BeforeClass
   public static void setUp() {
-    CONF.setClass(AsyncRegistryFactory.REGISTRY_IMPL_CONF_KEY, AsyncRegistryForTest.class,
+    CONF.setClass(AsyncRegistryFactory.CLIENT_REGISTRY_IMPL_CONF_KEY, AsyncRegistryForTest.class,
       AsyncRegistry.class);
   }
 

@@ -33,7 +33,7 @@ class DoNothingAsyncRegistry implements AsyncRegistry {
   }
 
   @Override
-  public CompletableFuture<RegionLocations> getMetaRegionLocation() {
+  public CompletableFuture<RegionLocations> getMetaRegionLocations() {
     return CompletableFuture.completedFuture(null);
   }
 
@@ -43,7 +43,7 @@ class DoNothingAsyncRegistry implements AsyncRegistry {
   }
 
   @Override
-  public CompletableFuture<ServerName> getMasterAddress() {
+  public CompletableFuture<ServerName> getActiveMaster() {
     return CompletableFuture.completedFuture(null);
   }
 

@@ -84,10 +84,10 @@ public class TestZKAsyncRegistry {
     assertEquals("Expected " + expectedClusterId + ", found=" + clusterId, expectedClusterId,
       clusterId);
     assertEquals(TEST_UTIL.getHBaseCluster().getMaster().getServerName(),
-      REGISTRY.getMasterAddress().get());
+      REGISTRY.getActiveMaster().get());
     RegionReplicaTestHelper
       .waitUntilAllMetaReplicasHavingRegionLocation(TEST_UTIL.getConfiguration(), REGISTRY, 3);
-    RegionLocations locs = REGISTRY.getMetaRegionLocation().get();
+    RegionLocations locs = REGISTRY.getMetaRegionLocations().get();
     assertEquals(3, locs.getRegionLocations().length);
     IntStream.range(0, 3).forEach(i -> {
       HRegionLocation loc = locs.getRegionLocation(i);
@@ -121,7 +121,7 @@ public class TestZKAsyncRegistry {
     conf.set("zookeeper.znode.metaserver", "whatever");
     try (ZKAsyncRegistry registry = new ZKAsyncRegistry(conf)) {
       try {
-        registry.getMetaRegionLocation().get();
+        registry.getMetaRegionLocations().get();
         fail("Should have failed since we set an incorrect meta znode prefix");
       } catch (ExecutionException e) {
         assertThat(e.getCause(), instanceOf(IOException.class));

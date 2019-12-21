@@ -50,7 +50,7 @@ final class RegionReplicaTestHelper {
         @Override
         public boolean evaluate() throws IOException {
           try {
-            RegionLocations locs = registry.getMetaRegionLocation().get();
+            RegionLocations locs = registry.getMetaRegionLocations().get();
             if (locs.size() < regionReplication) {
               return false;
             }
