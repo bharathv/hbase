@@ -40,15 +40,20 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
@@ -106,7 +111,13 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
 
   @edu.umd.cs.findbugs.annotations.SuppressWarnings(value="MS_MUTABLE_COLLECTION_PKGPROTECT",
       justification="the rest of the system which live in the different package can use")
-  protected final static Map<Kind, TokenSelector<? extends TokenIdentifier>> TOKEN_HANDLERS = new HashMap<>();
+  protected final static Map<Kind, TokenSelector<? extends TokenIdentifier>> TOKEN_HANDLERS =
+      new HashMap<>();
+
+  // Thread pool used to service all the hedged requests from the RPC client impl. We use a common
+  // thread pool to impose caps on the overall thread usage per client instance and also load on the
+  // server. This prevents runaway usage of resources from hedged RPCs.
+  private final ExecutorService hedgedRpcPool;
 
   static {
     TOKEN_HANDLERS.put(Kind.HBASE_AUTH_TOKEN, new AuthenticationTokenSelector());
@@ -198,6 +209,12 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
       }
     }, minIdleTimeBeforeClose, minIdleTimeBeforeClose, TimeUnit.MILLISECONDS);
 
+    int hedgedRpcPoolSize = conf.getInt(RpcClient.MAX_HEDGED_REQUESTS_PER_CLIENT_CONF,
+        RpcClient.MAX_HEDGED_REQUESTS_PER_CLIENT_DEFAULT);
+    Preconditions.checkArgument(hedgedRpcPoolSize > 0);
+    this.hedgedRpcPool = Executors.newFixedThreadPool(hedgedRpcPoolSize,
+        Threads.newDaemonThreadFactory("hedged-rpc"));
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("Codec=" + this.codec + ", compressor=" + this.compressor + ", tcpKeepAlive="
           + this.tcpKeepAlive + ", tcpNoDelay=" + this.tcpNoDelay + ", connectTO=" + this.connectTO
@@ -223,6 +240,15 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
         }
       }
     }
+  }
+
+  /**
+   * Submits a given runnable rpc call to the pool maintaining the hedged RPCs for this client.
+   * @param runnableRpc runnable rpc to add to hedgedRpcPool.
+   * @return Future task for the added rpc runnable.
+   */
+  Future<?> submitToHedgedRpcPool(Runnable runnableRpc) {
+    return hedgedRpcPool.submit(runnableRpc);
   }
 
   @VisibleForTesting
@@ -398,7 +424,7 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
     }
   }
 
-  private void callMethod(final Descriptors.MethodDescriptor md, final HBaseRpcController hrc,
+  void callMethod(final Descriptors.MethodDescriptor md, final HBaseRpcController hrc,
       final Message param, Message returnType, final User ticket, final InetSocketAddress addr,
       final RpcCallback<Message> callback) {
     final MetricsConnection.CallStats cs = MetricsConnection.newCallStats();
@@ -513,6 +539,9 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
     for (T conn : connToClose) {
       conn.cleanupConnection();
     }
+    if (hedgedRpcPool != null) {
+      hedgedRpcPool.shutdownNow();
+    }
   }
 
   @Override
@@ -525,6 +554,18 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
   public RpcChannel createRpcChannel(ServerName sn, User user, int rpcTimeout)
       throws UnknownHostException {
     return new RpcChannelImplementation(this, createAddr(sn), user, rpcTimeout);
+  }
+
+  @Override
+  public RpcChannel createHedgedRpcChannel(List<ServerName> sns, User user, int rpcTimeout)
+      throws UnknownHostException {
+    int hedgedRpcFanOut = conf.getInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY,
+        HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_DEFAULT);
+    List<InetSocketAddress> addresses = new ArrayList<>();
+    for (ServerName sn: sns) {
+      addresses.add(createAddr(sn));
+    }
+    return new HedgedRpcChannel(this, addresses, user, rpcTimeout, hedgedRpcFanOut);
   }
 
   private static class AbstractRpcChannel {
