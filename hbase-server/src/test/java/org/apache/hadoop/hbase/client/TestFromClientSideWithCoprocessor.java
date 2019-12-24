@@ -17,14 +17,16 @@
  */
 package org.apache.hadoop.hbase.client;
 
+import java.util.Arrays;
+import java.util.Collection;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.coprocessor.MultiRowMutationEndpoint;
 import org.apache.hadoop.hbase.regionserver.NoOpScanPolicyObserver;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.LargeTests;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.experimental.categories.Category;
+import org.junit.runners.Parameterized;
 
 /**
  * Test all client operations with a coprocessor that just implements the default flush/compact/scan
@@ -37,8 +39,15 @@ public class TestFromClientSideWithCoprocessor extends TestFromClientSide {
   public static final HBaseClassTestRule CLASS_RULE =
     HBaseClassTestRule.forClass(TestFromClientSideWithCoprocessor.class);
 
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-    initialize(MultiRowMutationEndpoint.class, NoOpScanPolicyObserver.class);
+  @Parameterized.Parameters
+  public static Collection parameters() {
+    return Arrays.asList(new Object[][] {
+        { ZKConnectionRegistry.class, 1}
+    });
+  }
+
+  public TestFromClientSideWithCoprocessor(Class registry, int numHedgedReqs) throws Exception {
+    initialize(registry, numHedgedReqs, NoOpScanPolicyObserver.class,
+        MultiRowMutationEndpoint.class);
   }
 }
