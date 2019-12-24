@@ -901,6 +901,12 @@ public final class HConstants {
    */
   public static final String HBASE_RPC_TIMEOUT_KEY = "hbase.rpc.timeout";
 
+  /** Configuration key that controls the fan out of requests in hedged channel implementation. **/
+  public static final String HBASE_RPCS_HEDGED_REQS_FANOUT_KEY = "hbase.rpc.hedged.fanout";
+
+  /** Default value for the fan out of hedged requests. **/
+  public static final int HBASE_RPCS_HEDGED_REQS_FANOUT_DEFAULT = 2;
+
   /**
    * timeout for each read RPC
    */

@@ -67,6 +67,17 @@ public class TestProtobufRpcServiceImpl implements BlockingInterface {
       User.getCurrent(), 0));
   }
 
+  public static Interface newStub(RpcClient client, List<InetSocketAddress> addrs)
+      throws IOException {
+    List<ServerName> serverNames = new ArrayList<>();
+    for (InetSocketAddress addr: addrs) {
+      serverNames.add(ServerName.valueOf(
+          addr.getHostName(), addr.getPort(), System.currentTimeMillis()));
+    }
+    return TestProtobufRpcProto.newStub(client.createHedgedRpcChannel(
+        serverNames, User.getCurrent(), 0));
+  }
+
   @Override
   public EmptyResponseProto ping(RpcController controller, EmptyRequestProto request)
       throws ServiceException {

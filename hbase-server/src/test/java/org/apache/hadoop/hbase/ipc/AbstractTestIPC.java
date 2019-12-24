@@ -42,10 +42,13 @@ import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.Server;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.ipc.RpcServer.BlockingServiceAndInterface;
 import org.apache.hbase.thirdparty.com.google.protobuf.ServiceException;
+import org.apache.hadoop.hbase.shaded.ipc.protobuf.generated.TestProtos;
 import org.apache.hadoop.hbase.shaded.ipc.protobuf.generated.TestProtos.EchoRequestProto;
 import org.apache.hadoop.hbase.shaded.ipc.protobuf.generated.TestProtos.EchoResponseProto;
 import org.apache.hadoop.hbase.shaded.ipc.protobuf.generated.TestProtos.EmptyRequestProto;
@@ -362,6 +365,101 @@ public abstract class AbstractTestIPC {
       rpcServer.stop();
     }
   }
+
+  /**
+   * Tests the happy path for various request fan out values using a simple RPC hedged across
+   * a mix of running and failing servers.
+   */
+  @Test
+  public void testHedgedAsyncEcho() throws Exception {
+    List<RpcServer> rpcServers = new ArrayList<>();
+    List<InetSocketAddress> addresses = new ArrayList<>();
+    // Create a mix of running and failing servers.
+    final int numRunningServers = 5;
+    final int numFailingServers = 3;
+    final int numServers = numRunningServers + numFailingServers;
+    for (int i = 0; i < numRunningServers; i++) {
+      RpcServer rpcServer = createRpcServer(null, "testRpcServer" + i,
+          Lists.newArrayList(new RpcServer.BlockingServiceAndInterface(
+          SERVICE, null)), new InetSocketAddress("localhost", 0), CONF,
+          new FifoRpcScheduler(CONF, 1));
+      rpcServer.start();
+      addresses.add(rpcServer.getListenerAddress());
+      rpcServers.add(rpcServer);
+    }
+    for (int i = 0; i < numFailingServers; i++) {
+      RpcServer rpcServer = createTestFailingRpcServer(null, "testFailingRpcServer" + i,
+          Lists.newArrayList(new RpcServer.BlockingServiceAndInterface(
+          SERVICE, null)), new InetSocketAddress("localhost", 0), CONF,
+          new FifoRpcScheduler(CONF, 1));
+      rpcServer.start();
+      addresses.add(rpcServer.getListenerAddress());
+      rpcServers.add(rpcServer);
+    }
+    Configuration conf = HBaseConfiguration.create();
+    try (AbstractRpcClient<?> client = createRpcClient(conf)) {
+      // Try out various fan out values starting from 1 -> numServers.
+      for (int reqFanOut = 1; reqFanOut <= numServers; reqFanOut++) {
+        // Update the client's underlying conf, should be ok for the test.
+        LOG.debug("Testing with request fan out: " + reqFanOut);
+        conf.setInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY, reqFanOut);
+        Interface stub = newStub(client, addresses);
+        BlockingRpcCallback<EchoResponseProto> done = new BlockingRpcCallback<>();
+        stub.echo(new HBaseRpcControllerImpl(),
+            EchoRequestProto.newBuilder().setMessage("hello").build(), done);
+        TestProtos.EchoResponseProto responseProto = done.get();
+        assertNotNull(responseProto);
+        assertEquals("hello", responseProto.getMessage());
+        LOG.debug("Ended test with request fan out: " + reqFanOut);
+      }
+    } finally {
+      for (RpcServer rpcServer: rpcServers) {
+        rpcServer.stop();
+      }
+    }
+  }
+
+  @Test
+  public void testHedgedAsyncTimeouts() throws Exception {
+    List<RpcServer> rpcServers = new ArrayList<>();
+    List<InetSocketAddress> addresses = new ArrayList<>();
+    // Create a mix of running and failing servers.
+    final int numServers = 3;
+    for (int i = 0; i < numServers; i++) {
+      RpcServer rpcServer = createRpcServer(null, "testTimeoutRpcServer" + i,
+          Lists.newArrayList(new RpcServer.BlockingServiceAndInterface(
+          SERVICE, null)), new InetSocketAddress("localhost", 0), CONF,
+          new FifoRpcScheduler(CONF, 1));
+      rpcServer.start();
+      addresses.add(rpcServer.getListenerAddress());
+      rpcServers.add(rpcServer);
+    }
+    Configuration conf = HBaseConfiguration.create();
+    int timeout = 100;
+    int pauseTime = 1000;
+    try (AbstractRpcClient<?> client = createRpcClient(conf)) {
+      // Try out various fan out values starting from 1 -> numServers.
+      for (int reqFanOut = 1; reqFanOut <= numServers; reqFanOut++) {
+        // Update the client's underlying conf, should be ok for the test.
+        LOG.debug("Testing with request fan out: " + reqFanOut);
+        conf.setInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY, reqFanOut);
+        Interface stub = newStub(client, addresses);
+        HBaseRpcController pcrc = new HBaseRpcControllerImpl();
+        pcrc.setCallTimeout(timeout);
+        BlockingRpcCallback<EmptyResponseProto> callback = new BlockingRpcCallback<>();
+        stub.pause(pcrc, PauseRequestProto.newBuilder().setMs(pauseTime).build(), callback);
+        assertNull(callback.get());
+        // Make sure the controller has the right exception propagated.
+        assertTrue(pcrc.getFailed() instanceof CallTimeoutException);
+        LOG.debug("Ended test with request fan out: " + reqFanOut);
+      }
+    } finally {
+      for (RpcServer rpcServer: rpcServers) {
+        rpcServer.stop();
+      }
+    }
+  }
+
 
   @Test
   public void testAsyncRemoteError() throws IOException {
