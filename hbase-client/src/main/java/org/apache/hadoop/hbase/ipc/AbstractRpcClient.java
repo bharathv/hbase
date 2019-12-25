@@ -29,9 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -107,11 +105,6 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
       justification="the rest of the system which live in the different package can use")
   protected final static Map<Kind, TokenSelector<? extends TokenIdentifier>> TOKEN_HANDLERS =
       new HashMap<>();
-
-  // Thread pool used to service all the hedged requests from the RPC client impl. We use a common
-  // thread pool to impose caps on the overall thread usage per client instance and also load on the
-  // server. This prevents runaway usage of resources from hedged RPCs.
-  private final ExecutorService hedgedRpcPool;
 
   static {
     TOKEN_HANDLERS.put(Kind.HBASE_AUTH_TOKEN, new AuthenticationTokenSelector());
@@ -203,12 +196,6 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
       }
     }, minIdleTimeBeforeClose, minIdleTimeBeforeClose, TimeUnit.MILLISECONDS);
 
-    int hedgedRpcPoolSize = conf.getInt(RpcClient.MAX_HEDGED_REQUESTS_PER_CLIENT_CONF,
-        RpcClient.MAX_HEDGED_REQUESTS_PER_CLIENT_DEFAULT);
-    Preconditions.checkArgument(hedgedRpcPoolSize > 0);
-    this.hedgedRpcPool = Executors.newFixedThreadPool(hedgedRpcPoolSize,
-        Threads.newDaemonThreadFactory("hedged-rpc"));
-
     if (LOG.isDebugEnabled()) {
       LOG.debug("Codec=" + this.codec + ", compressor=" + this.compressor + ", tcpKeepAlive="
           + this.tcpKeepAlive + ", tcpNoDelay=" + this.tcpNoDelay + ", connectTO=" + this.connectTO
@@ -236,15 +223,6 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
         }
       }
     }
-  }
-
-  /**
-   * Submits a given runnable rpc call to the pool maintaining the hedged RPCs for this client.
-   * @param runnableRpc runnable rpc to add to hedgedRpcPool.
-   * @return Future task for the added rpc runnable.
-   */
-  Future<?> submitToHedgedRpcPool(Runnable runnableRpc) {
-    return hedgedRpcPool.submit(runnableRpc);
   }
 
   @VisibleForTesting
@@ -420,7 +398,7 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
     }
   }
 
-  void callMethod(final Descriptors.MethodDescriptor md, final HBaseRpcController hrc,
+  Call callMethod(final Descriptors.MethodDescriptor md, final HBaseRpcController hrc,
       final Message param, Message returnType, final User ticket, final InetSocketAddress addr,
       final RpcCallback<Message> callback) {
     final MetricsConnection.CallStats cs = MetricsConnection.newCallStats();
@@ -457,6 +435,7 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
     } catch (Exception e) {
       call.setException(toIOE(e));
     }
+    return call;
   }
 
   private InetSocketAddress createAddr(ServerName sn) throws UnknownHostException {
@@ -534,9 +513,6 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
     closeInternal();
     for (T conn : connToClose) {
       conn.cleanupConnection();
-    }
-    if (hedgedRpcPool != null) {
-      hedgedRpcPool.shutdownNow();
     }
   }
 
