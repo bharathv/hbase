@@ -1075,7 +1075,8 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
     if (TableName.META_TABLE_NAME.equals(tableName)) {
       CompletableFuture<List<HRegionLocation>> future = new CompletableFuture<>();
       // For meta table, we use zk to fetch all locations.
-      AsyncRegistry registry = AsyncRegistryFactory.getRegistry(connection.getConfiguration());
+      ConnectionRegistry registry = ConnectionRegistryFactory.getRegistry(
+          connection.getConfiguration());
       addListener(registry.getMetaRegionLocations(), (metaRegions, err) -> {
         if (err != null) {
           future.completeExceptionally(err);

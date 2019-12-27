@@ -43,7 +43,7 @@ import org.apache.hadoop.hbase.client.AsyncConnection;
 import org.apache.hadoop.hbase.client.AsyncTable;
 import org.apache.hadoop.hbase.client.ClusterConnectionFactory;
 import org.apache.hadoop.hbase.client.DummyAsyncClusterConnection;
-import org.apache.hadoop.hbase.client.DummyAsyncRegistry;
+import org.apache.hadoop.hbase.client.DummyConnectionRegistry;
 import org.apache.hadoop.hbase.client.DummyAsyncTable;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.security.User;
@@ -108,12 +108,12 @@ public class TestWALEntrySinkFilter {
   public void testWALEntryFilter() throws IOException {
     Configuration conf = HBaseConfiguration.create();
     // Make it so our filter is instantiated on construction of ReplicationSink.
-    conf.setClass(DummyAsyncRegistry.REGISTRY_IMPL_CONF_KEY, DevNullAsyncRegistry.class,
-      DummyAsyncRegistry.class);
+    conf.setClass(DummyConnectionRegistry.REGISTRY_IMPL_CONF_KEY, DevNullConnectionRegistry.class,
+        DummyConnectionRegistry.class);
     conf.setClass(WALEntrySinkFilter.WAL_ENTRY_FILTER_KEY,
-      IfTimeIsGreaterThanBOUNDARYWALEntrySinkFilterImpl.class, WALEntrySinkFilter.class);
+        IfTimeIsGreaterThanBOUNDARYWALEntrySinkFilterImpl.class, WALEntrySinkFilter.class);
     conf.setClass(ClusterConnectionFactory.HBASE_SERVER_CLUSTER_CONNECTION_IMPL,
-      DevNullAsyncClusterConnection.class, AsyncClusterConnection.class);
+        DevNullAsyncClusterConnection.class, AsyncClusterConnection.class);
     ReplicationSink sink = new ReplicationSink(conf, STOPPABLE);
     // Create some dumb walentries.
     List<AdminProtos.WALEntry> entries = new ArrayList<>();
@@ -190,9 +190,9 @@ public class TestWALEntrySinkFilter {
     }
   }
 
-  public static class DevNullAsyncRegistry extends DummyAsyncRegistry {
+  public static class DevNullConnectionRegistry extends DummyConnectionRegistry {
 
-    public DevNullAsyncRegistry(Configuration conf) {
+    public DevNullConnectionRegistry(Configuration conf) {
     }
 
     @Override

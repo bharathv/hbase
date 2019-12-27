@@ -17,40 +17,37 @@
  */
 package org.apache.hadoop.hbase.client;
 
-import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.RegionLocations;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
- * Registry for meta information needed for connection setup to a HBase cluster. Implementations
- * hold cluster information such as this cluster's id, location of hbase:meta, etc..
- * Internal use only.
+ * Registry that does nothing. Otherwise, default Registry wants zookeeper up and running.
  */
 @InterfaceAudience.Private
-interface AsyncRegistry extends Closeable {
+class DoNothingConnectionRegistry implements ConnectionRegistry {
 
-  /**
-   * Get the location of meta region(s).
-   */
-  CompletableFuture<RegionLocations> getMetaRegionLocations();
+  public DoNothingConnectionRegistry(Configuration conf) {
+  }
 
-  /**
-   * Should only be called once.
-   * <p>
-   * The upper layer should store this value somewhere as it will not be change any more.
-   */
-  CompletableFuture<String> getClusterId();
-
-  /**
-   * Get the address of active HMaster.
-   */
-  CompletableFuture<ServerName> getActiveMaster();
-
-  /**
-   * Closes this instance and releases any system resources associated with it
-   */
   @Override
-  void close();
+  public CompletableFuture<RegionLocations> getMetaRegionLocations() {
+    return CompletableFuture.completedFuture(null);
+  }
+
+  @Override
+  public CompletableFuture<String> getClusterId() {
+    return CompletableFuture.completedFuture(null);
+  }
+
+  @Override
+  public CompletableFuture<ServerName> getActiveMaster() {
+    return CompletableFuture.completedFuture(null);
+  }
+
+  @Override
+  public void close() {
+  }
 }

@@ -23,12 +23,12 @@ import org.apache.hadoop.hbase.ServerName;
 
 /**
  * Can be overridden in UT if you only want to implement part of the methods in
- * {@link AsyncRegistry}.
+ * {@link ConnectionRegistry}.
  */
-public class DummyAsyncRegistry implements AsyncRegistry {
+public class DummyConnectionRegistry implements ConnectionRegistry {
 
   public static final String REGISTRY_IMPL_CONF_KEY =
-      AsyncRegistryFactory.CLIENT_REGISTRY_IMPL_CONF_KEY;
+      ConnectionRegistryFactory.CLIENT_CONNECTION_REGISTRY_IMPL_CONF_KEY;
 
   @Override
   public CompletableFuture<RegionLocations> getMetaRegionLocations() {

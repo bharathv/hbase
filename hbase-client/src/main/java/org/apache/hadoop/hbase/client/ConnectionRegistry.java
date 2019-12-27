@@ -17,27 +17,40 @@
  */
 package org.apache.hadoop.hbase.client;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.ReflectionUtils;
+import java.io.Closeable;
+import java.util.concurrent.CompletableFuture;
+import org.apache.hadoop.hbase.RegionLocations;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
- * Factory class to get the instance of configured registry.
+ * Registry for meta information needed for connection setup to a HBase cluster. Implementations
+ * hold cluster information such as this cluster's id, location of hbase:meta, etc..
+ * Internal use only.
  */
 @InterfaceAudience.Private
-final class AsyncRegistryFactory {
-
-  static final String CLIENT_REGISTRY_IMPL_CONF_KEY = "hbase.client.registry.impl";
-
-  private AsyncRegistryFactory() {
-  }
+interface ConnectionRegistry extends Closeable {
 
   /**
-   * @return The cluster registry implementation to use.
+   * Get the location of meta region(s).
    */
-  static AsyncRegistry getRegistry(Configuration conf) {
-    Class<? extends AsyncRegistry> clazz =
-        conf.getClass(CLIENT_REGISTRY_IMPL_CONF_KEY, ZKAsyncRegistry.class, AsyncRegistry.class);
-    return ReflectionUtils.newInstance(clazz, conf);
-  }
+  CompletableFuture<RegionLocations> getMetaRegionLocations();
+
+  /**
+   * Should only be called once.
+   * <p>
+   * The upper layer should store this value somewhere as it will not be change any more.
+   */
+  CompletableFuture<String> getClusterId();
+
+  /**
+   * Get the address of active HMaster.
+   */
+  CompletableFuture<ServerName> getActiveMaster();
+
+  /**
+   * Closes this instance and releases any system resources associated with it
+   */
+  @Override
+  void close();
 }

@@ -43,9 +43,9 @@ public class TestAsyncMetaRegionLocatorFailFast {
 
   private static AsyncMetaRegionLocator LOCATOR;
 
-  private static final class FaultyAsyncRegistry extends DoNothingAsyncRegistry {
+  private static final class FaultyConnectionRegistry extends DoNothingConnectionRegistry {
 
-    public FaultyAsyncRegistry(Configuration conf) {
+    public FaultyConnectionRegistry(Configuration conf) {
       super(conf);
     }
 
@@ -57,7 +57,7 @@ public class TestAsyncMetaRegionLocatorFailFast {
 
   @BeforeClass
   public static void setUp() {
-    LOCATOR = new AsyncMetaRegionLocator(new FaultyAsyncRegistry(CONF));
+    LOCATOR = new AsyncMetaRegionLocator(new FaultyConnectionRegistry(CONF));
   }
 
   @Test(expected = DoNotRetryIOException.class)
