@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,7 +18,6 @@
 package org.apache.hadoop.hbase.replication.regionserver;
 
 import static org.apache.hadoop.hbase.wal.AbstractFSWALProvider.getArchivedLogPath;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -65,7 +64,6 @@ import org.apache.hadoop.hbase.wal.WAL.Entry;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesting;
 import org.apache.hbase.thirdparty.com.google.common.collect.Lists;
 
@@ -73,7 +71,7 @@ import org.apache.hbase.thirdparty.com.google.common.collect.Lists;
  * Class that handles the source of a replication stream.
  * Currently does not handle more than 1 slave
  * For each slave cluster it selects a random number of peers
- * using a replication ratio. For example, if replication ration = 0.1
+ * using a replication ratio. For example, if replication ratio = 0.1
  * and slave cluster has 100 region servers, 10 will be selected.
  * <p>
  * A stream is considered down when we cannot contact a region server on the

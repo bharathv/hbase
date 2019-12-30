@@ -19,16 +19,15 @@
 package org.apache.hadoop.hbase.replication;
 
 import java.util.List;
-
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
- * This is the interface for a Replication Tracker. A replication tracker provides the facility to
- * subscribe and track events that reflect a change in replication state. These events are used by
- * the ReplicationSourceManager to coordinate replication tasks such as addition/deletion of queues
- * and queue failover. These events are defined in the ReplicationListener interface. If a class
- * would like to listen to replication events it must implement the ReplicationListener interface
- * and register itself with a Replication Tracker.
+ * A replication tracker provides the facility to subscribe and track events that reflect a change
+ * in replication state. These events are used by the ReplicationSourceManager to coordinate
+ * replication tasks such as addition/deletion of queues and queue failover. These events are
+ * defined in the ReplicationListener interface. If a class would like to listen to replication
+ * events it must implement the ReplicationListener interface and register itself with a Replication
+ * Tracker.
  */
 @InterfaceAudience.Private
 public interface ReplicationTracker {
@@ -37,13 +36,13 @@ public interface ReplicationTracker {
    * Register a replication listener to receive replication events.
    * @param listener the listener to register
    */
-  public void registerListener(ReplicationListener listener);
+  void registerListener(ReplicationListener listener);
 
-  public void removeListener(ReplicationListener listener);
+  void removeListener(ReplicationListener listener);
 
   /**
    * Returns a list of other live region servers in the cluster.
    * @return List of region servers.
    */
-  public List<String> getListOfRegionServers();
+  List<String> getListOfRegionServers();
 }

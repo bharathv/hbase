@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -68,7 +68,6 @@ import org.apache.yetus.audience.InterfaceAudience;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hbase.thirdparty.com.google.common.annotations.VisibleForTesting;
 import org.apache.hbase.thirdparty.com.google.common.collect.Sets;
 import org.apache.hbase.thirdparty.com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -156,7 +155,7 @@ public class ReplicationSourceManager implements ReplicationListener {
   private final WALFileLengthProvider walFileLengthProvider;
   // The number of ms that we wait before moving znodes, HBASE-3596
   private final long sleepBeforeFailover;
-  // Homemade executer service for replication
+  // Homemade executor service for replication
   private final ThreadPoolExecutor executor;
 
   private final boolean replicationForBulkLoadDataEnabled;
@@ -983,6 +982,8 @@ public class ReplicationSourceManager implements ReplicationListener {
    * Terminate the replication on this region server
    */
   public void join() {
+    // unsubscribe from any further notifications.
+    this.replicationTracker.removeListener(this);
     this.executor.shutdown();
     for (ReplicationSourceInterface source : this.sources.values()) {
       source.terminate("Region server is closing");

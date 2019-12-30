@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -57,7 +57,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hbase.thirdparty.com.google.common.util.concurrent.AtomicLongMap;
 
 /**
@@ -65,40 +64,35 @@ import org.apache.hbase.thirdparty.com.google.common.util.concurrent.AtomicLongM
  *
  * Usage: hbase org.apache.hadoop.hbase.replication.regionserver.DumpReplicationQueues [args]
  * Arguments: --distributed    Polls each RS to dump information about the queue
- *            --hdfs           Reports HDFS usage by the replication queues (note: can be overestimated).
+ *            --hdfs     Reports HDFS usage by the replication queues (note: can be overestimated).
  */
 @InterfaceAudience.Private
 public class DumpReplicationQueues extends Configured implements Tool {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DumpReplicationQueues.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(DumpReplicationQueues.class);
 
   private List<String> deadRegionServers;
   private List<String> deletedQueues;
   private AtomicLongMap<String> peersQueueSize;
   private long totalSizeOfWALs;
-  private long numWalsNotFound;
+  private long numWALsNotFound;
 
   public DumpReplicationQueues() {
     deadRegionServers = new ArrayList<>();
     deletedQueues = new ArrayList<>();
     peersQueueSize = AtomicLongMap.create();
     totalSizeOfWALs = 0;
-    numWalsNotFound = 0;
+    numWALsNotFound = 0;
   }
 
   static class DumpOptions {
-    boolean hdfs = false;
-    boolean distributed = false;
+    private boolean hdfs = false;
+    private boolean distributed = false;
 
     public DumpOptions() {
     }
 
-    public DumpOptions(DumpOptions that) {
-      this.hdfs = that.hdfs;
-      this.distributed = that.distributed;
-    }
-
-    boolean isHdfs () {
+    boolean isHdfs() {
       return hdfs;
     }
 
@@ -106,7 +100,7 @@ public class DumpReplicationQueues extends Configured implements Tool {
       return distributed;
     }
 
-    void setHdfs (boolean hdfs) {
+    void setHdfs(boolean hdfs) {
       this.hdfs = hdfs;
     }
 
@@ -118,7 +112,7 @@ public class DumpReplicationQueues extends Configured implements Tool {
   static DumpOptions parseOpts(Queue<String> args) {
     DumpOptions opts = new DumpOptions();
 
-    String cmd = null;
+    String cmd;
     while ((cmd = args.poll()) != null) {
       if (cmd.equals("-h") || cmd.equals("--h") || cmd.equals("--help")) {
         // place item back onto queue so that caller knows parsing was incomplete
@@ -146,9 +140,9 @@ public class DumpReplicationQueues extends Configured implements Tool {
   }
 
   /**
-   * Main
+   * Main method. See the usage in the class description.
    *
-   * @param args
+   * @param args See the argument information in the class description.
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
@@ -184,10 +178,9 @@ public class DumpReplicationQueues extends Configured implements Tool {
 
   protected static void printUsage(final String className, final String message) {
     if (message != null && message.length() > 0) {
-      System.err.println(message);
+      LOG.error(message);
     }
-    System.err.println("Usage: hbase " + className + " \\");
-    System.err.println("  <OPTIONS> [-D<property=value>]*");
+    System.err.println(String.format("Usage: hbase %s <OPTIONS> [-D<property=value>]*", className));
     System.err.println();
     System.err.println("General Options:");
     System.err.println(" -h|--h|--help  Show this help and exit.");
@@ -217,7 +210,7 @@ public class DumpReplicationQueues extends Configured implements Tool {
       List<TableCFs> replicatedTableCFs = admin.listReplicatedTableCFs();
       if (replicatedTableCFs.isEmpty()) {
         LOG.info("No tables with a configured replication peer were found.");
-        return(0);
+        return 0;
       } else {
         LOG.info("Replicated Tables: " + replicatedTableCFs);
       }
@@ -228,21 +221,21 @@ public class DumpReplicationQueues extends Configured implements Tool {
         LOG.info("Replication is enabled but no peer configuration was found.");
       }
 
-      System.out.println("Dumping replication peers and configurations:");
-      System.out.println(dumpPeersState(peers));
+      LOG.info("Dumping replication peers and configurations:");
+      LOG.info(dumpPeersState(peers));
 
       if (opts.isDistributed()) {
         LOG.info("Found [--distributed], will poll each RegionServer.");
         Set<String> peerIds = peers.stream().map((peer) -> peer.getPeerId())
             .collect(Collectors.toSet());
-        System.out.println(dumpQueues(zkw, peerIds, opts.isHdfs()));
-        System.out.println(dumpReplicationSummary());
+        LOG.info(dumpQueues(zkw, peerIds, opts.isHdfs()));
+        LOG.info(dumpReplicationSummary());
       } else {
         // use ZK instead
-        System.out.print("Dumping replication znodes via ZooKeeper:");
-        System.out.println(ZKUtil.getReplicationZnodesDump(zkw));
+        LOG.info(
+            "Dumping replication znodes via ZooKeeper: {}", ZKUtil.getReplicationZnodesDump(zkw));
       }
-      return (0);
+      return 0;
     } catch (IOException e) {
       return (-1);
     } finally {
@@ -269,12 +262,13 @@ public class DumpReplicationQueues extends Configured implements Tool {
     if (!peersQueueSize.isEmpty()) {
       sb.append("Dumping all peers's number of WALs in replication queue\n");
       for (Map.Entry<String, Long> entry : peersQueueSize.asMap().entrySet()) {
-        sb.append("    PeerId: " + entry.getKey() + " , sizeOfLogQueue: " + entry.getValue() + "\n");
+        sb.append(
+            "    PeerId: " + entry.getKey() + " , sizeOfLogQueue: " + entry.getValue() + "\n");
       }
     }
     sb.append("    Total size of WALs on HDFS: " + StringUtils.humanSize(totalSizeOfWALs) + "\n");
-    if (numWalsNotFound > 0) {
-      sb.append("    ERROR: There are " + numWalsNotFound + " WALs not found!!!\n");
+    if (numWALsNotFound > 0) {
+      sb.append("    ERROR: There are " + numWALsNotFound + " WALs not found!!!\n");
     }
     return sb.toString();
   }
@@ -373,8 +367,7 @@ public class DumpReplicationQueues extends Configured implements Tool {
   /**
    *  return total size in bytes from a list of WALs
    */
-  private long getTotalWALSize(FileSystem fs, List<String> wals, ServerName server)
-      throws IOException {
+  private long getTotalWALSize(FileSystem fs, List<String> wals, ServerName server) {
     long size = 0;
     FileStatus fileStatus;
 
@@ -383,7 +376,7 @@ public class DumpReplicationQueues extends Configured implements Tool {
         fileStatus = (new WALLink(getConf(), server.getServerName(), wal)).getFileStatus(fs);
       } catch (IOException e) {
         if (e instanceof FileNotFoundException) {
-          numWalsNotFound++;
+          numWALsNotFound++;
           LOG.warn("WAL " + wal + " couldn't be found, skipping", e);
         } else {
           LOG.warn("Can't get file status of WAL " + wal + ", skipping", e);
