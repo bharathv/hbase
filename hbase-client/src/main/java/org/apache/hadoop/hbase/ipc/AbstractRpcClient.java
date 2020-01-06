@@ -26,7 +26,6 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -34,6 +33,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
@@ -438,7 +438,7 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
     return call;
   }
 
-  private InetSocketAddress createAddr(ServerName sn) throws UnknownHostException {
+  InetSocketAddress createAddr(ServerName sn) throws UnknownHostException {
     InetSocketAddress addr = new InetSocketAddress(sn.getHostname(), sn.getPort());
     if (addr.isUnresolved()) {
       throw new UnknownHostException("can not resolve " + sn.getServerName());
@@ -531,16 +531,8 @@ public abstract class AbstractRpcClient<T extends RpcConnection> implements RpcC
   @Override
   public RpcChannel createHedgedRpcChannel(Set<ServerName> sns, User user, int rpcTimeout)
       throws UnknownHostException {
-    final int hedgedRpcFanOut = conf.getInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY,
-        HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_DEFAULT);
-    Set<InetSocketAddress> addresses = new HashSet<>();
-    for (ServerName sn: sns) {
-      addresses.add(createAddr(sn));
-    }
-    Preconditions.checkState(this instanceof NettyRpcClient,
-        "Hedging only supported for non-blocking connection implementations.");
-    return new HedgedRpcChannel((NettyRpcClient) this, addresses, user, rpcTimeout,
-        hedgedRpcFanOut);
+    // Check HedgedRpcChannel implementation for detailed comments.
+    throw new NotImplementedException("Hedging not supported for this implementation.");
   }
 
   private static class AbstractRpcChannel {
