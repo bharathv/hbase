@@ -34,11 +34,12 @@ import org.junit.runners.Parameterized;
  */
 @Category({ LargeTests.class, ClientTests.class })
 public class TestFromClientSideWithCoprocessor extends TestFromClientSide {
-
   @ClassRule
   public static final HBaseClassTestRule CLASS_RULE =
     HBaseClassTestRule.forClass(TestFromClientSideWithCoprocessor.class);
 
+  // Override the parameters from the parent class. We just want to run it for the default
+  // param combination.
   @Parameterized.Parameters
   public static Collection parameters() {
     return Arrays.asList(new Object[][] {
@@ -47,7 +48,10 @@ public class TestFromClientSideWithCoprocessor extends TestFromClientSide {
   }
 
   public TestFromClientSideWithCoprocessor(Class registry, int numHedgedReqs) throws Exception {
-    initialize(registry, numHedgedReqs, NoOpScanPolicyObserver.class,
-        MultiRowMutationEndpoint.class);
+    if (TEST_UTIL == null) {
+      // It is ok to initialize once because the test is parameterized for a single dimension.
+      initialize(registry, numHedgedReqs, NoOpScanPolicyObserver.class,
+          MultiRowMutationEndpoint.class);
+    }
   }
 }

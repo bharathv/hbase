@@ -108,6 +108,7 @@ import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.NonRepeatedEnvironmentEdge;
 import org.apache.hadoop.hbase.util.TableDescriptorChecker;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -163,8 +164,33 @@ public class TestFromClientSide {
     });
   }
 
+  /**
+   * JUnit does not provide an easy way to run a method after each parameterized run. Without that
+   * there is no easy way to restart the test cluster after each parameterized run. This is hack
+   * that checks if the current instance of test cluster configuration has the passed
+   * parameterized configs. In such a case, we can just reuse the cluster for test and do not need
+   * to initialize from scratch. While this is a hack, it saves a ton of time for the full
+   * test and de-flakes it.
+   */
+  private static boolean isSameParameterizedCluster(Class registryImpl, int numHedgedReqs) {
+    if (TEST_UTIL == null) {
+      return false;
+    }
+    Configuration conf = TEST_UTIL.getConfiguration();
+    Class confClass = conf.getClass(
+        HConstants.CLIENT_CONNECTION_REGISTRY_IMPL_CONF_KEY, ZKConnectionRegistry.class);
+    int hedgedReqConfig = conf.getInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY,
+        HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_DEFAULT);
+    return confClass.getName().equals(registryImpl.getName()) && numHedgedReqs == hedgedReqConfig;
+  }
+
   protected static final void initialize(Class registryImpl, int numHedgedReqs, Class<?>... cps)
       throws Exception {
+    // initialize() is called for every unit test, however we only want to reset the cluster state
+    // at the end of every parameterized run.
+    if (isSameParameterizedCluster(registryImpl, numHedgedReqs)) {
+      return;
+    }
     // Uncomment the following lines if more verbosity is needed for
     // debugging (see HBASE-12285 for details).
     // ((Log4JLogger)RpcServer.LOG).getLogger().setLevel(Level.ALL);
@@ -173,8 +199,7 @@ public class TestFromClientSide {
     // make sure that we do not get the same ts twice, see HBASE-19731 for more details.
     EnvironmentEdgeManager.injectEdge(new NonRepeatedEnvironmentEdge());
     if (TEST_UTIL != null) {
-      // Belongs to another parameterized run. Currently, there is no clean way to cleanup test
-      // resources after each parametrized run. Something like @AfterParameterized.
+      // We reached end of a parameterized run, clean up.
       TEST_UTIL.shutdownMiniCluster();
     }
     TEST_UTIL = new HBaseTestingUtility();
@@ -189,8 +214,8 @@ public class TestFromClientSide {
     } else {
       Preconditions.checkArgument(numHedgedReqs > 1);
       conf.setBoolean(HConstants.MASTER_REGISTRY_ENABLE_HEDGED_READS_KEY, true);
-      conf.setInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY, numHedgedReqs);
     }
+    conf.setInt(HConstants.HBASE_RPCS_HEDGED_REQS_FANOUT_KEY, numHedgedReqs);
     StartMiniClusterOption.Builder builder = StartMiniClusterOption.builder();
     // Multiple masters needed only when hedged reads for master registry are enabled.
     builder.numMasters(numHedgedReqs > 1 ? 3 : 1).numRegionServers(SLAVES);
@@ -4254,6 +4279,12 @@ public class TestFromClientSide {
    */
   @Test
   public void testUnmanagedHConnectionReconnect() throws Exception {
+    Configuration conf = TEST_UTIL.getConfiguration();
+    Class registryImpl = conf.getClass(
+        HConstants.CLIENT_CONNECTION_REGISTRY_IMPL_CONF_KEY, ZKConnectionRegistry.class);
+    // This test does not make sense for MasterRegistry since it stops the only master in the
+    // cluster and starts a new master without populating the underlying config for the connection.
+    Assume.assumeFalse(registryImpl.equals(MasterRegistry.class));
     final TableName tableName = name.getTableName();
     TEST_UTIL.createTable(tableName, HConstants.CATALOG_FAMILY);
     try (Connection conn = ConnectionFactory.createConnection(TEST_UTIL.getConfiguration())) {
