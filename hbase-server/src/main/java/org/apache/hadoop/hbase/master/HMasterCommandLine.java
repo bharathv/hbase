@@ -226,7 +226,7 @@ public class HMasterCommandLine extends ServerCommandLine {
         conf.setIfUnset("hbase.master.start.timeout.localHBaseCluster", "300000");
         LOG.info("Starting up instance of localHBaseCluster; master=" + mastersCount +
           ", regionserversCount=" + regionServersCount);
-        LocalHBaseCluster cluster = new LocalHBaseCluster(conf, mastersCount, regionServersCount,
+        LocalHBaseCluster cluster = new LocalHBaseCluster(conf, mastersCount, 0, regionServersCount,
           LocalHMaster.class, HRegionServer.class);
         ((LocalHMaster)cluster.getMaster(0)).setZKCluster(zooKeeperCluster);
         cluster.startup();

@@ -60,7 +60,7 @@ public class TestMetaRegionLocationCache {
     TEST_UTIL.getConfiguration().setInt(HConstants.META_REPLICAS_NUM, 3);
     TEST_UTIL.startMiniCluster(3);
     REGISTRY = ConnectionRegistryFactory.getRegistry(TEST_UTIL.getConfiguration());
-    RegionReplicaTestHelper.waitUntilAllMetaReplicasHavingRegionLocation(
+    RegionReplicaTestHelper.waitUntilAllMetaReplicasAreReady(TEST_UTIL,
         TEST_UTIL.getConfiguration(), REGISTRY, 3);
     TEST_UTIL.getAdmin().balancerSwitch(false, true);
   }
@@ -123,7 +123,7 @@ public class TestMetaRegionLocationCache {
     for (HRegionLocation location: currentMetaLocs) {
       RegionReplicaTestHelper.moveRegion(TEST_UTIL, location);
     }
-    RegionReplicaTestHelper.waitUntilAllMetaReplicasHavingRegionLocation(
+    RegionReplicaTestHelper.waitUntilAllMetaReplicasAreReady(TEST_UTIL,
         TEST_UTIL.getConfiguration(), REGISTRY, 3);
     for (JVMClusterUtil.MasterThread masterThread:
         TEST_UTIL.getMiniHBaseCluster().getMasterThreads()) {

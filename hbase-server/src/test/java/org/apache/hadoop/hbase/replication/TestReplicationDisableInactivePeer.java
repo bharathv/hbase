@@ -66,8 +66,7 @@ public class TestReplicationDisableInactivePeer extends TestReplicationBase {
 
     // disable and start the peer
     hbaseAdmin.disableReplicationPeer("2");
-    StartMiniClusterOption option = StartMiniClusterOption.builder().numRegionServers(2).build();
-    UTIL2.startMiniHBaseCluster(option);
+    restartTargetHBaseCluster(2);
     Get get = new Get(rowkey);
     for (int i = 0; i < NB_RETRIES; i++) {
       Result res = htable2.get(get);

@@ -96,7 +96,7 @@ public class TestRSKilledWhenInitializing {
     TEST_UTIL.startMiniZKCluster();
     TEST_UTIL.createRootDir();
     final LocalHBaseCluster cluster =
-        new LocalHBaseCluster(conf, NUM_MASTERS, NUM_RS, HMaster.class,
+        new LocalHBaseCluster(conf, NUM_MASTERS, 0, NUM_RS, HMaster.class,
             RegisterAndDieRegionServer.class);
     final MasterThread master = startMaster(cluster.getMasters().get(0));
     try {

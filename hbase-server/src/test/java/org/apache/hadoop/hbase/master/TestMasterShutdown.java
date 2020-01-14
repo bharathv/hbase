@@ -133,7 +133,7 @@ public class TestMasterShutdown {
     util.startMiniZKCluster();
     util.createRootDir();
     final LocalHBaseCluster cluster =
-        new LocalHBaseCluster(conf, NUM_MASTERS, NUM_RS, HMaster.class,
+        new LocalHBaseCluster(conf, NUM_MASTERS, 0, NUM_RS, HMaster.class,
             MiniHBaseCluster.MiniHBaseClusterRegionServer.class);
     final int MASTER_INDEX = 0;
     final MasterThread master = cluster.getMasters().get(MASTER_INDEX);
