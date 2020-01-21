@@ -92,8 +92,7 @@ public class MasterRegistry implements ConnectionRegistry {
     }
     rpcTimeoutMs = (int) Math.min(Integer.MAX_VALUE, conf.getLong(HConstants.HBASE_RPC_TIMEOUT_KEY,
         HConstants.DEFAULT_HBASE_RPC_TIMEOUT));
-    masterServers = new HashSet<>();
-    parseMasterAddrs(finalConf);
+    masterServers = parseMasterAddrs(finalConf);
     rpcClient = RpcClientFactory.createClient(finalConf, HConstants.CLUSTER_ID_DEFAULT);
     rpcControllerFactory = RpcControllerFactory.instantiate(finalConf);
   }
@@ -111,15 +110,18 @@ public class MasterRegistry implements ConnectionRegistry {
    * comma separated host[:port] values. If no port number if specified, default master port is
    * assumed.
    * @param conf Configuration to parse from.
+   * @return The list of parsed ServerNames.
    */
-  private void parseMasterAddrs(Configuration conf) {
+  public static Set<ServerName> parseMasterAddrs(Configuration conf) {
+    Set<ServerName> result = new HashSet<>();
     String configuredMasters = conf.get(MASTER_ADDRS_KEY, MASTER_ADDRS_DEFAULT);
     for (String masterAddr: configuredMasters.split(MASTER_ADDRS_CONF_SEPARATOR)) {
       HostAndPort masterHostPort =
           HostAndPort.fromString(masterAddr.trim()).withDefaultPort(HConstants.DEFAULT_MASTER_PORT);
-      masterServers.add(ServerName.valueOf(masterHostPort.toString(), ServerName.NON_STARTCODE));
+      result.add(ServerName.valueOf(masterHostPort.toString(), ServerName.NON_STARTCODE));
     }
-    Preconditions.checkArgument(!masterServers.isEmpty(), "At least one master address is needed");
+    Preconditions.checkArgument(!result.isEmpty(), "At least one master address is needed");
+    return result;
   }
 
   @VisibleForTesting

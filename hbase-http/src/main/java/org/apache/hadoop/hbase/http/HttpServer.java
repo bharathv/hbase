@@ -132,6 +132,8 @@ public class HttpServer implements FilterContainer {
   public static final String HTTP_AUTHENTICATION_SIGNATURE_SECRET_FILE_KEY =
       HTTP_AUTHENTICATION_PREFIX + HTTP_AUTHENTICATION_SIGNATURE_SECRET_FILE_SUFFIX;
 
+  public static final String HTTP_CLUSTERID_URI_ENDPOINT = "/clusterId.jsp";
+
   // The ServletContext attribute where the daemon Configuration
   // gets stored.
   public static final String CONF_CONTEXT_ATTRIBUTE = "hbase.conf";
@@ -991,6 +993,9 @@ public class HttpServer implements FilterContainer {
     }
     params.put(AuthenticationFilter.AUTH_TYPE, "kerberos");
 
+    // URI end points for which auth is bypassed.
+    params.put(CustomAuthenticationFilter.AUTH_EXCLUDED_URIS, HTTP_CLUSTERID_URI_ENDPOINT);
+
     // Verify that the required options were provided
     if (isMissing(params.get(HTTP_SPNEGO_AUTHENTICATION_PRINCIPAL_SUFFIX)) ||
             isMissing(params.get(HTTP_SPNEGO_AUTHENTICATION_KEYTAB_SUFFIX))) {
@@ -999,7 +1004,7 @@ public class HttpServer implements FilterContainer {
           + "to enable SPNEGO/Kerberos authentication for the Web UI");
     }
 
-    addGlobalFilter(SPNEGO_FILTER, AuthenticationFilter.class.getName(), params);
+    addGlobalFilter(SPNEGO_FILTER, CustomAuthenticationFilter.class.getName(), params);
   }
 
   /**

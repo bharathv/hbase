@@ -185,6 +185,10 @@ public class TestSpnegoHttpServer extends HttpServerFunctionalTest {
     URL url = new URL(getServerURL(server), "/echo?a=b");
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+    // Auth bypassed endpoints should still be accessible.
+    URL noAuthURL = new URL(getServerURL(server), HttpServer.HTTP_CLUSTERID_URI_ENDPOINT);
+    conn = (HttpURLConnection) noAuthURL.openConnection();
+    assertNotEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
   }
 
   @Test

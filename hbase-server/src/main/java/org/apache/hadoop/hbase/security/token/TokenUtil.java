@@ -17,25 +17,33 @@
  */
 package org.apache.hadoop.hbase.security.token;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.AsyncConnection;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.MasterRegistry;
+import org.apache.hadoop.hbase.http.HttpServer;
 import org.apache.hadoop.hbase.protobuf.generated.AuthenticationProtos;
 import org.apache.hadoop.hbase.security.User;
-import org.apache.hadoop.hbase.zookeeper.ZKClusterId;
-import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.security.token.Token;
 import org.apache.yetus.audience.InterfaceAudience;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.hbase.thirdparty.com.google.common.net.HostAndPort;
 
 
 /**
@@ -271,18 +279,26 @@ public class TokenUtil {
    * @return null if the user does not have the token, otherwise the auth token for the cluster.
    */
   private static Token<AuthenticationTokenIdentifier> getAuthToken(Configuration conf, User user)
-      throws IOException, InterruptedException {
-    ZKWatcher zkw = new ZKWatcher(conf, "TokenUtil-getAuthToken", null);
-    try {
-      String clusterId = ZKClusterId.readClusterIdZNode(zkw);
-      if (clusterId == null) {
-        throw new IOException("Failed to get cluster ID");
+      throws IOException {
+    Set<ServerName> masterAddrs = MasterRegistry.parseMasterAddrs(conf);
+    // Get the info port to probe, from the configuration. This is different from the rpc port
+    // parsed above.
+    int infoPort = conf.getInt(HConstants.MASTER_INFO_PORT, HConstants.DEFAULT_MASTER_INFOPORT);
+    for (ServerName master: masterAddrs) {
+      URL url = new URL("http", HostAndPort.fromParts(master.getHostname(), infoPort).toString(),
+          HttpServer.HTTP_CLUSTERID_URI_ENDPOINT);
+      LOG.debug("Attempting to get clusterID from URL: {}", url);
+      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+      String clusterId;
+      try (BufferedReader in = new BufferedReader(new InputStreamReader(
+          connection.getInputStream()))) {
+        clusterId = in.lines().collect(Collectors.joining());
       }
-      return new AuthenticationTokenSelector().selectToken(new Text(clusterId), user.getTokens());
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } finally {
-      zkw.close();
+      if (clusterId != null && clusterId.length() != 0) {
+        return new AuthenticationTokenSelector().selectToken(new Text(clusterId), user.getTokens());
+      }
+      LOG.debug("Call to fetch clusterID from URL: {} failed.", url);
     }
+    throw new IOException("Failed to get cluster ID");
   }
 }
