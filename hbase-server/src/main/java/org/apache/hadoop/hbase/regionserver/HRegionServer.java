@@ -3465,7 +3465,7 @@ public class HRegionServer extends HasThread implements
       Message request = builderForType.build();
       final Message.Builder responseBuilder =
           service.getResponsePrototype(methodDesc).newBuilderForType();
-      service.callMethod(methodDesc, serviceController, request, new RpcCallback<Message>() {
+      service.callMethod(methodDesc, controller, request, new RpcCallback<Message>() {
         @Override
         public void run(Message message) {
           if (message != null) {

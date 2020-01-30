@@ -86,7 +86,7 @@ possible configurations would overwhelm and obscure the important.
   </property>
   <property>
     <name>hbase.zookeeper.quorum</name>
-    <value>localhost</value>
+    <value>127.0.0.1</value>
     <description>Comma separated list of servers in the ZooKeeper ensemble
     (This config. should have been named hbase.zookeeper.ensemble).
     For example, "host1.mydomain.com,host2.mydomain.com,host3.mydomain.com".
@@ -115,6 +115,12 @@ possible configurations would overwhelm and obscure the important.
     <description>Directory on the local filesystem to be used
     as a local storage.</description>
   </property>
+
+  <property>
+    <name>hbase.regionserver.wal.codec</name>
+    <value>org.apache.hadoop.hbase.regionserver.wal.IndexedWALEditCodec</value>
+  </property>
+
 
   <!--Master configurations-->
   <property >
@@ -1072,6 +1078,12 @@ possible configurations would overwhelm and obscure the important.
     it in HBase's classpath and add the fully qualified class name here.
     A coprocessor can also be loaded on demand by setting HTableDescriptor.</description>
   </property>
+
+  <property>
+    <name>hbase.coprocessor.regionserver.classes</name>
+    <value>org.apache.phoenix.replication.PhoenixSinkReplicationEndPoint</value>
+  </property>
+
   <property>
     <name>hbase.rest.port</name>
     <value>8080</value>

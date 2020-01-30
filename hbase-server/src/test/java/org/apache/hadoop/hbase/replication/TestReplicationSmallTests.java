@@ -20,10 +20,14 @@ package org.apache.hadoop.hbase.replication;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,10 +68,15 @@ import org.apache.hadoop.hbase.testclassification.LargeTests;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hbase.util.JVMClusterUtil;
+import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.hbase.wal.DefaultWALProvider;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.phoenix.jdbc.PhoenixConnection;
+import org.apache.phoenix.schema.PTable;
+import org.apache.phoenix.util.PhoenixRuntime;
+import org.apache.phoenix.util.QueryUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -207,13 +216,42 @@ public class TestReplicationSmallTests extends TestReplicationBase {
     }
   }
 
+  private void createPhoenixTables() throws SQLException {
+    PhoenixConnection conn = (PhoenixConnection) QueryUtil.getConnection(conf1);
+    String tableName = "TEST";
+    String indexName = "TEST_INDEX";
+    String indexName2 = "TEST_INDEX2";
+    String sql = "CREATE TABLE " + tableName +" (pk varchar not null primary key, \"row\" varchar)";
+    String indexSql = "CREATE INDEX " + indexName + " on " + tableName + "(\"row\" desc)";
+    try {
+      conn.createStatement().execute(sql);
+      conn.createStatement().execute(indexSql);
+      conn.commit();
+    } finally {
+      conn.close();
+    }
+
+    String indexSql2 = "create index " + indexName2 + " on " + tableName + "(\"row\" desc)";
+    PhoenixConnection conn2 = (PhoenixConnection) QueryUtil.getConnection(conf2);
+    try {
+      conn2.createStatement().execute(sql);
+      conn2.createStatement().execute(indexSql2);
+    } finally {
+      conn2.close();
+    }
+  }
+
   /**
    * Add a row, check it's replicated, delete it, check's gone
    * @throws Exception
    */
-  @Test(timeout=300000)
+  @Test(timeout=3000000)
   public void testSimplePutDelete() throws Exception {
     LOG.info("testSimplePutDelete");
+    createPhoenixTables();
+
+    Threads.sleep(10000000);
+
     Put put = new Put(row);
     put.add(famName, row, row);
 
@@ -234,6 +272,8 @@ public class TestReplicationSmallTests extends TestReplicationBase {
         break;
       }
     }
+
+    Threads.sleep(1000000);
 
     Delete del = new Delete(row);
     htable1.delete(del);

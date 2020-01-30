@@ -74,7 +74,7 @@ public class TestReplicationBase {
   protected static final int NB_RETRIES = 10;
 
   protected static final TableName tableName = TableName.valueOf("test");
-  protected static final byte[] famName = Bytes.toBytes("f");
+  protected static final byte[] famName = Bytes.toBytes("F");
   protected static final byte[] row = Bytes.toBytes("row");
   protected static final byte[] noRepfamName = Bytes.toBytes("norep");
   protected static final String PEER_ID2 = "2";
@@ -129,6 +129,7 @@ public class TestReplicationBase {
 
     ReplicationPeerConfig rpc = new ReplicationPeerConfig();
     rpc.setClusterKey(utility2.getClusterKey());
+    rpc.setReplicationEndpointImpl("org.apache.phoenix.replication.PhoenixSourceReplicationEndPoint");
     admin.addPeer(PEER_ID, rpc);
 
     LOG.info("Setup second Zk");

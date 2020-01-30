@@ -205,7 +205,7 @@ public class JVMClusterUtil {
     // Wait for an active master to be initialized (implies being master)
     //  with this, when we return the cluster is complete
     startTime = System.currentTimeMillis();
-    final int maxwait = 200000;
+    final int maxwait = 500000;
     while (true) {
       JVMClusterUtil.MasterThread t = findActiveMaster(masters);
       if (t != null && t.master.isInitialized()) {

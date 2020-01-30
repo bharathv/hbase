@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -151,6 +152,11 @@ public class VisibilityReplicationEndpoint implements ReplicationEndpoint {
   @Override
   public State stopAndWait() {
     return delegator.stopAndWait();
+  }
+
+  @Override
+  public void addListener(Listener listener, Executor executor) {
+
   }
 
   @Override
