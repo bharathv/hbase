@@ -254,6 +254,22 @@ cat >"${working_dir}/hbase-conf/hbase-site.xml" <<EOF
     <name>hbase.cluster.distributed</name>
     <value>${distributed}</value>
   </property>
+  <property>
+   <name>hbase.zookeeper.quorum</name>
+   <value>127.0.0.1</value>
+  </property>
+  <property>
+   <name>zookeeper.session.timeout.localHBaseCluster</name>
+   <value>3000000</value>
+  </property>
+  <property>
+   <name>hbase.master.ipc.address</name>
+   <value>127.0.0.1</value>
+  </property>
+  <property>
+   <name>hbase.regionserver.ipc.address</name>
+   <value>127.0.0.1</value>
+  </property>
 </configuration>
 EOF
 

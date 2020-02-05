@@ -54,7 +54,7 @@ public class MiniZooKeeperCluster {
   private static final Logger LOG = LoggerFactory.getLogger(MiniZooKeeperCluster.class);
 
   private static final int TICK_TIME = 2000;
-  private static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
+  private static final int DEFAULT_CONNECTION_TIMEOUT = 300000;
   private static final byte[] STATIC_BYTES = Bytes.toBytes("stat");
   private final int connectionTimeout;
 
@@ -239,7 +239,7 @@ public class MiniZooKeeperCluster {
         try {
           standaloneServerFactory = new NIOServerCnxnFactory();
           standaloneServerFactory.configure(
-            new InetSocketAddress(currentClientPort),
+            new InetSocketAddress("127.0.0.1", currentClientPort),
             configuration.getInt(HConstants.ZOOKEEPER_MAX_CLIENT_CNXNS,
                     HConstants.DEFAULT_ZOOKEEPER_MAX_CLIENT_CNXNS));
         } catch (BindException e) {
@@ -426,7 +426,7 @@ public class MiniZooKeeperCluster {
     long start = System.currentTimeMillis();
     while (true) {
       try {
-        Socket sock = new Socket("localhost", port);
+        Socket sock = new Socket("127.0.0.1", port);
         BufferedReader reader = null;
         try {
           OutputStream outstream = sock.getOutputStream();
