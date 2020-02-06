@@ -19,6 +19,8 @@ package org.apache.hadoop.hbase.util;
 import java.lang.reflect.Method;
 import java.net.UnknownHostException;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.yetus.audience.InterfaceAudience;
 
 /**
@@ -64,6 +66,26 @@ public final class DNS {
       }
     } else {
       return org.apache.hadoop.net.DNS.getDefaultHost(strInterface, nameserver);
+    }
+  }
+
+  /**
+   * Get the configured hostname for master/regionserver. Gets the default hostname if not specified
+   * in the configuration.
+   * @param conf Configuration to look up.
+   * @param isMaster True if master hostname needs to be looked up and false for regionserver.
+   */
+  public static String getHostname(Configuration conf, boolean isMaster)
+      throws UnknownHostException {
+    String hostname = conf.get(isMaster? HConstants.MASTER_HOSTNAME_KEY :
+        HConstants.RS_HOSTNAME_KEY);
+    if (hostname == null || hostname.isEmpty()) {
+      String masterOrRS = isMaster ? "master" : "regionserver";
+      return Strings.domainNamePointerToHostName(getDefaultHost(
+          conf.get("hbase." + masterOrRS + ".dns.interface", "default"),
+          conf.get("hbase." + masterOrRS + ".dns.nameserver", "default")));
+    } else {
+      return hostname;
     }
   }
 }

@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.regionserver.HStoreFile;
 import org.apache.hadoop.hbase.regionserver.RSRpcServices;
 import org.apache.hadoop.hbase.regionserver.StoreConfigInformation;
 import org.apache.hadoop.hbase.regionserver.StoreUtils;
+import org.apache.hadoop.hbase.util.DNS;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.util.ReflectionUtils;
@@ -172,7 +173,7 @@ public class DateTieredCompactionPolicy extends SortedCompactionPolicy {
     }
 
     float blockLocalityIndex = hdfsBlocksDistribution
-        .getBlockLocalityIndex(RSRpcServices.getHostname(comConf.conf, false));
+        .getBlockLocalityIndex(DNS.getHostname(comConf.conf, false));
     if (blockLocalityIndex < comConf.getMinLocalityToForceCompact()) {
       LOG.debug("Major compaction triggered on store " + this
         + "; to make hdfs blocks local, current blockLocalityIndex is "

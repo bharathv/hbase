@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.StartMiniClusterOption;
 import org.apache.hadoop.hbase.master.LoadBalancer;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
@@ -75,7 +76,7 @@ public class TestRegionServerHostname {
   @Test
   public void testInvalidRegionServerHostnameAbortsServer() throws Exception {
     String invalidHostname = "hostAddr.invalid";
-    TEST_UTIL.getConfiguration().set(HRegionServer.RS_HOSTNAME_KEY, invalidHostname);
+    TEST_UTIL.getConfiguration().set(HConstants.RS_HOSTNAME_KEY, invalidHostname);
     HRegionServer hrs = null;
     try {
       hrs = new HRegionServer(TEST_UTIL.getConfiguration());
@@ -103,8 +104,8 @@ public class TestRegionServerHostname {
         String hostName = addr.getHostName();
         LOG.info("Found " + hostName + " on " + ni + ", addr=" + addr);
 
-        TEST_UTIL.getConfiguration().set(HRegionServer.MASTER_HOSTNAME_KEY, hostName);
-        TEST_UTIL.getConfiguration().set(HRegionServer.RS_HOSTNAME_KEY, hostName);
+        TEST_UTIL.getConfiguration().set(HConstants.MASTER_HOSTNAME_KEY, hostName);
+        TEST_UTIL.getConfiguration().set(HConstants.RS_HOSTNAME_KEY, hostName);
         StartMiniClusterOption option = StartMiniClusterOption.builder()
             .numMasters(NUM_MASTERS).numRegionServers(NUM_RS).numDataNodes(NUM_RS).build();
         TEST_UTIL.startMiniCluster(option);
@@ -141,10 +142,10 @@ public class TestRegionServerHostname {
         String hostName = addr.getHostName();
         LOG.info("Found " + hostName + " on " + ni);
 
-        TEST_UTIL.getConfiguration().set(HRegionServer.MASTER_HOSTNAME_KEY, hostName);
+        TEST_UTIL.getConfiguration().set(HConstants.MASTER_HOSTNAME_KEY, hostName);
         // "hbase.regionserver.hostname" and "hbase.regionserver.hostname.disable.master.reversedns"
         // are mutually exclusive. Exception should be thrown if both are used.
-        TEST_UTIL.getConfiguration().set(HRegionServer.RS_HOSTNAME_KEY, hostName);
+        TEST_UTIL.getConfiguration().set(HConstants.RS_HOSTNAME_KEY, hostName);
         TEST_UTIL.getConfiguration().setBoolean(HRegionServer.RS_HOSTNAME_DISABLE_MASTER_REVERSEDNS_KEY, true);
         try {
           StartMiniClusterOption option = StartMiniClusterOption.builder()
@@ -154,8 +155,8 @@ public class TestRegionServerHostname {
           Throwable t1 = e.getCause();
           Throwable t2 = t1.getCause();
           assertTrue(t1.getMessage()+" - "+t2.getMessage(), t2.getMessage().contains(
-            HRegionServer.RS_HOSTNAME_DISABLE_MASTER_REVERSEDNS_KEY + " and " + HRegionServer.RS_HOSTNAME_KEY +
-            " are mutually exclusive"));
+            HRegionServer.RS_HOSTNAME_DISABLE_MASTER_REVERSEDNS_KEY + " and " +
+                HConstants.RS_HOSTNAME_KEY + " are mutually exclusive"));
           return;
         } finally {
           TEST_UTIL.shutdownMiniCluster();

@@ -181,7 +181,11 @@ public final class HConstants {
   /** Configuration key for the list of master host:ports **/
   public static final String MASTER_ADDRS_KEY = "hbase.masters";
 
-  public static final String MASTER_ADDRS_DEFAULT =  "localhost:" + DEFAULT_MASTER_PORT;
+  // key to the config parameter of server hostname
+  // the specification of server hostname is optional. The hostname should be resolvable from
+  // both master and region server
+  public static final String RS_HOSTNAME_KEY = "hbase.regionserver.hostname";
+  public static final String MASTER_HOSTNAME_KEY = "hbase.master.hostname";
 
   /** Full class name of the Zookeeper based connection registry implementation */
   public static final String ZK_CONNECTION_REGISTRY_CLASS =
