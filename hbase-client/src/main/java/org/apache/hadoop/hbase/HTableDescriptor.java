@@ -53,33 +53,17 @@ import org.apache.yetus.audience.InterfaceAudience;
 @InterfaceAudience.Public
 public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescriptor> {
   public static final String SPLIT_POLICY = TableDescriptorBuilder.SPLIT_POLICY;
-  public static final String MAX_FILESIZE = TableDescriptorBuilder.MAX_FILESIZE;
   public static final String OWNER = TableDescriptorBuilder.OWNER;
-  public static final Bytes OWNER_KEY = TableDescriptorBuilder.OWNER_KEY;
   public static final String READONLY = TableDescriptorBuilder.READONLY;
-  public static final String COMPACTION_ENABLED = TableDescriptorBuilder.COMPACTION_ENABLED;
-  public static final String SPLIT_ENABLED = TableDescriptorBuilder.SPLIT_ENABLED;
-  public static final String MERGE_ENABLED = TableDescriptorBuilder.MERGE_ENABLED;
-  public static final String MEMSTORE_FLUSHSIZE = TableDescriptorBuilder.MEMSTORE_FLUSHSIZE;
-  public static final String FLUSH_POLICY = TableDescriptorBuilder.FLUSH_POLICY;
   public static final String IS_ROOT = "IS_ROOT";
   public static final String IS_META = TableDescriptorBuilder.IS_META;
   public static final String DURABILITY = TableDescriptorBuilder.DURABILITY;
   public static final String REGION_REPLICATION = TableDescriptorBuilder.REGION_REPLICATION;
-  public static final String REGION_MEMSTORE_REPLICATION = TableDescriptorBuilder.REGION_MEMSTORE_REPLICATION;
-  public static final String NORMALIZATION_ENABLED = TableDescriptorBuilder.NORMALIZATION_ENABLED;
-  public static final String NORMALIZER_TARGET_REGION_COUNT =
-      TableDescriptorBuilder.NORMALIZER_TARGET_REGION_COUNT;
-  public static final String NORMALIZER_TARGET_REGION_SIZE =
-      TableDescriptorBuilder.NORMALIZER_TARGET_REGION_SIZE;
   public static final String PRIORITY = TableDescriptorBuilder.PRIORITY;
   public static final boolean DEFAULT_READONLY = TableDescriptorBuilder.DEFAULT_READONLY;
-  public static final boolean DEFAULT_COMPACTION_ENABLED = TableDescriptorBuilder.DEFAULT_COMPACTION_ENABLED;
-  public static final boolean DEFAULT_NORMALIZATION_ENABLED = TableDescriptorBuilder.DEFAULT_NORMALIZATION_ENABLED;
   public static final long DEFAULT_MEMSTORE_FLUSH_SIZE = TableDescriptorBuilder.DEFAULT_MEMSTORE_FLUSH_SIZE;
   public static final int DEFAULT_REGION_REPLICATION = TableDescriptorBuilder.DEFAULT_REGION_REPLICATION;
-  public static final boolean DEFAULT_REGION_MEMSTORE_REPLICATION = TableDescriptorBuilder.DEFAULT_REGION_MEMSTORE_REPLICATION;
-  protected final ModifyableTableDescriptor delegatee;
+  protected final ModifyableTableDescriptor delegate;
 
   /**
    * Construct a table descriptor specifying a TableName object
@@ -103,7 +87,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
 
   protected HTableDescriptor(final HTableDescriptor desc, boolean deepClone) {
     this(deepClone ? new ModifyableTableDescriptor(desc.getTableName(), desc)
-      : desc.delegatee);
+      : desc.delegate);
   }
 
   public HTableDescriptor(final TableDescriptor desc) {
@@ -123,8 +107,8 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
     this(new ModifyableTableDescriptor(name, desc));
   }
 
-  protected HTableDescriptor(ModifyableTableDescriptor delegatee) {
-    this.delegatee = delegatee;
+  protected HTableDescriptor(ModifyableTableDescriptor delegate) {
+    this.delegate = delegate;
   }
 
   /**
@@ -145,7 +129,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isMetaRegion() {
-    return delegatee.isMetaRegion();
+    return delegate.isMetaRegion();
   }
 
   /**
@@ -155,7 +139,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isMetaTable() {
-    return delegatee.isMetaTable();
+    return delegate.isMetaTable();
   }
 
   /**
@@ -163,7 +147,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public Map<Bytes, Bytes> getValues() {
-    return delegatee.getValues();
+    return delegate.getValues();
   }
 
   /**
@@ -237,7 +221,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isReadOnly() {
-    return delegatee.isReadOnly();
+    return delegate.isReadOnly();
   }
 
   /**
@@ -261,7 +245,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isCompactionEnabled() {
-    return delegatee.isCompactionEnabled();
+    return delegate.isCompactionEnabled();
   }
 
   /**
@@ -282,7 +266,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isSplitEnabled() {
-    return delegatee.isSplitEnabled();
+    return delegate.isSplitEnabled();
   }
 
   /**
@@ -304,7 +288,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isMergeEnabled() {
-    return delegatee.isMergeEnabled();
+    return delegate.isMergeEnabled();
   }
 
   /**
@@ -325,7 +309,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean isNormalizationEnabled() {
-    return delegatee.isNormalizationEnabled();
+    return delegate.isNormalizationEnabled();
   }
 
   /**
@@ -373,7 +357,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public Durability getDurability() {
-    return delegatee.getDurability();
+    return delegate.getDurability();
   }
 
   /**
@@ -383,7 +367,12 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public TableName getTableName() {
-    return delegatee.getTableName();
+    return delegate.getTableName();
+  }
+
+  @Override
+  public TableName getReplicationTarget() {
+    return delegate.getReplicationTarget();
   }
 
   /**
@@ -392,7 +381,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    * @return name of table as a String
    */
   public String getNameAsString() {
-    return delegatee.getTableName().getNameAsString();
+    return delegate.getTableName().getNameAsString();
   }
 
   /**
@@ -416,7 +405,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
    public String getRegionSplitPolicyClassName() {
-    return delegatee.getRegionSplitPolicyClassName();
+    return delegate.getRegionSplitPolicyClassName();
   }
 
   /**
@@ -430,7 +419,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
    @Override
   public long getMaxFileSize() {
-    return delegatee.getMaxFileSize();
+    return delegate.getMaxFileSize();
   }
 
   /**
@@ -462,7 +451,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public long getMemStoreFlushSize() {
-    return delegatee.getMemStoreFlushSize();
+    return delegate.getMemStoreFlushSize();
   }
 
   /**
@@ -496,7 +485,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public String getFlushPolicyClassName() {
-    return delegatee.getFlushPolicyClassName();
+    return delegate.getFlushPolicyClassName();
   }
 
   /**
@@ -525,7 +514,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    * @return true if the table contains the specified family name
    */
   public boolean hasFamily(final byte [] familyName) {
-    return delegatee.hasColumnFamily(familyName);
+    return delegate.hasColumnFamily(familyName);
   }
 
   /**
@@ -535,7 +524,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public String toString() {
-    return delegatee.toString();
+    return delegate.toString();
   }
 
   /**
@@ -544,14 +533,14 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public String toStringCustomizedValues() {
-    return delegatee.toStringCustomizedValues();
+    return delegate.toStringCustomizedValues();
   }
 
   /**
    * @return map of all table attributes formatted into string.
    */
   public String toStringTableAttributes() {
-   return delegatee.toStringTableAttributes();
+   return delegate.toStringTableAttributes();
   }
 
   /**
@@ -569,7 +558,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
       return true;
     }
     if (obj instanceof HTableDescriptor) {
-      return delegatee.equals(((HTableDescriptor) obj).delegatee);
+      return delegate.equals(((HTableDescriptor) obj).delegate);
     }
     return false;
   }
@@ -579,7 +568,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public int hashCode() {
-    return delegatee.hashCode();
+    return delegate.hashCode();
   }
 
   // Comparable
@@ -607,7 +596,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Deprecated
   public Collection<HColumnDescriptor> getFamilies() {
-    return Stream.of(delegatee.getColumnFamilies())
+    return Stream.of(delegate.getColumnFamilies())
             .map(this::toHColumnDescriptor)
             .collect(Collectors.toList());
   }
@@ -617,7 +606,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public int getRegionReplication() {
-    return delegatee.getRegionReplication();
+    return delegate.getRegionReplication();
   }
 
   /**
@@ -643,7 +632,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean hasRegionMemStoreReplication() {
-    return delegatee.hasRegionMemStoreReplication();
+    return delegate.hasRegionMemStoreReplication();
   }
 
   /**
@@ -676,7 +665,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
 
   @Override
   public int getPriority() {
-    return delegatee.getPriority();
+    return delegate.getPriority();
   }
 
   /**
@@ -692,7 +681,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Deprecated
   public Set<byte[]> getFamiliesKeys() {
-    return delegatee.getColumnFamilyNames();
+    return delegate.getColumnFamilyNames();
   }
 
   /**
@@ -702,7 +691,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public int getColumnFamilyCount() {
-    return delegatee.getColumnFamilyCount();
+    return delegate.getColumnFamilyCount();
   }
 
   /**
@@ -717,7 +706,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
   @Deprecated
   @Override
   public HColumnDescriptor[] getColumnFamilies() {
-    return Stream.of(delegatee.getColumnFamilies())
+    return Stream.of(delegate.getColumnFamilies())
             .map(this::toHColumnDescriptor)
             .toArray(size -> new HColumnDescriptor[size]);
   }
@@ -735,7 +724,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Deprecated
   public HColumnDescriptor getFamily(final byte[] column) {
-    return toHColumnDescriptor(delegatee.getColumnFamily(column));
+    return toHColumnDescriptor(delegate.getColumnFamily(column));
   }
 
 
@@ -830,12 +819,12 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    */
   @Override
   public boolean hasCoprocessor(String classNameToMatch) {
-    return delegatee.hasCoprocessor(classNameToMatch);
+    return delegate.hasCoprocessor(classNameToMatch);
   }
 
   @Override
   public Collection<CoprocessorDescriptor> getCoprocessorDescriptors() {
-    return delegatee.getCoprocessorDescriptors();
+    return delegate.getCoprocessorDescriptors();
   }
 
   /**
@@ -892,7 +881,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
   @Override
   @Deprecated
   public String getOwnerString() {
-    return delegatee.getOwnerString();
+    return delegate.getOwnerString();
   }
 
   /**
@@ -900,7 +889,7 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    * @see #parseFrom(byte[])
    */
   public byte[] toByteArray() {
-    return TableDescriptorBuilder.toByteArray(delegatee);
+    return TableDescriptorBuilder.toByteArray(delegate);
   }
 
   /**
@@ -924,14 +913,14 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
    * Getter for accessing the configuration value by key
    */
   public String getConfigurationValue(String key) {
-    return delegatee.getValue(key);
+    return delegate.getValue(key);
   }
 
   /**
    * Getter for fetching an unmodifiable map.
    */
   public Map<String, String> getConfiguration() {
-    return delegatee.getConfiguration();
+    return delegate.getConfiguration();
   }
 
   /**
@@ -953,40 +942,40 @@ public class HTableDescriptor implements TableDescriptor, Comparable<HTableDescr
 
   @Override
   public Bytes getValue(Bytes key) {
-    return delegatee.getValue(key);
+    return delegate.getValue(key);
   }
 
   @Override
   public String getValue(String key) {
-    return delegatee.getValue(key);
+    return delegate.getValue(key);
   }
 
   @Override
   public byte[] getValue(byte[] key) {
-    return delegatee.getValue(key);
+    return delegate.getValue(key);
   }
 
   @Override
   public Set<byte[]> getColumnFamilyNames() {
-    return delegatee.getColumnFamilyNames();
+    return delegate.getColumnFamilyNames();
   }
 
   @Override
   public boolean hasColumnFamily(byte[] name) {
-    return delegatee.hasColumnFamily(name);
+    return delegate.hasColumnFamily(name);
   }
 
   @Override
   public ColumnFamilyDescriptor getColumnFamily(byte[] name) {
-    return delegatee.getColumnFamily(name);
+    return delegate.getColumnFamily(name);
   }
 
   protected ModifyableTableDescriptor getDelegateeForModification() {
-    return delegatee;
+    return delegate;
   }
 
   @Override
   public Optional<String> getRegionServerGroup() {
-    return delegatee.getRegionServerGroup();
+    return delegate.getRegionServerGroup();
   }
 }

@@ -178,6 +178,11 @@ public interface TableDescriptor {
   TableName getTableName();
 
   /**
+   * @return TableName on the peers to which this table replicates to.
+   */
+  TableName getReplicationTarget();
+
+  /**
    * @deprecated since 2.0.0 and will be removed in 3.0.0.
    * @see <a href="https://issues.apache.org/jira/browse/HBASE-15583">HBASE-15583</a>
    */

@@ -181,6 +181,11 @@ public class TableDescriptorBuilder {
   private static final Bytes NORMALIZER_TARGET_REGION_SIZE_KEY =
       new Bytes(Bytes.toBytes(NORMALIZER_TARGET_REGION_SIZE));
 
+  @InterfaceAudience.Private
+  protected static final String REPLICATION_TARGET_TABLE = "REPLICATION_TARGET_TABLE";
+  private static final Bytes REPLICATION_TARGET_TABLE_KEY =
+      new Bytes(Bytes.toBytes(REPLICATION_TARGET_TABLE));
+
   /**
    * Default durability for HTD is USE_DEFAULT, which defaults to HBase-global
    * default value
@@ -396,11 +401,6 @@ public class TableDescriptorBuilder {
     return this;
   }
 
-  public TableDescriptorBuilder removeValue(Bytes key) {
-    desc.removeValue(key);
-    return this;
-  }
-
   public TableDescriptorBuilder removeValue(byte[] key) {
     desc.removeValue(key);
     return this;
@@ -451,21 +451,6 @@ public class TableDescriptorBuilder {
     return this;
   }
 
-  public TableDescriptorBuilder setNormalizerTargetRegionCount(final int regionCount) {
-    desc.setNormalizerTargetRegionCount(regionCount);
-    return this;
-  }
-
-  public TableDescriptorBuilder setNormalizerTargetRegionSize(final long regionSize) {
-    desc.setNormalizerTargetRegionSize(regionSize);
-    return this;
-  }
-
-  public TableDescriptorBuilder setNormalizationEnabled(final boolean isEnable) {
-    desc.setNormalizationEnabled(isEnable);
-    return this;
-  }
-
   /**
    * @deprecated since 2.0.0 and will be removed in 3.0.0.
    * @see <a href="https://issues.apache.org/jira/browse/HBASE-15583">HBASE-15583</a>
@@ -493,11 +478,6 @@ public class TableDescriptorBuilder {
 
   public TableDescriptorBuilder setReadOnly(final boolean readOnly) {
     desc.setReadOnly(readOnly);
-    return this;
-  }
-
-  public TableDescriptorBuilder setRegionMemStoreReplication(boolean memstoreReplication) {
-    desc.setRegionMemStoreReplication(memstoreReplication);
     return this;
   }
 
@@ -541,6 +521,11 @@ public class TableDescriptorBuilder {
           desc.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cfDesc).setScope(scope)
               .build());
         });
+    return this;
+  }
+
+  public TableDescriptorBuilder setReplicationTarget(TableName replicationTarget) {
+    desc.setValue(REPLICATION_TARGET_TABLE_KEY, new Bytes(replicationTarget.toBytes()));
     return this;
   }
 
@@ -936,6 +921,11 @@ public class TableDescriptorBuilder {
     @Override
     public TableName getTableName() {
       return name;
+    }
+
+    @Override
+    public TableName getReplicationTarget() {
+      return getOrDefault(REPLICATION_TARGET_TABLE_KEY, TableName::valueOf, name);
     }
 
     /**
