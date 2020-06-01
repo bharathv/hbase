@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -50,7 +49,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hbase.thirdparty.com.google.common.collect.Lists;
 
 @Category({ MediumTests.class })
@@ -246,9 +244,15 @@ public class TestRSGroupsBasics extends TestRSGroupsBase {
     assertTrue(newGroup.getServers().contains(serverToStop.getAddress()));
 
     // clear dead servers list
-    List<ServerName> notClearedServers = admin.clearDeadServers(Lists.newArrayList(serverToStop));
-    assertEquals(0, notClearedServers.size());
-
+    // We need to retry here because the clearDeadServers() RPC may race with currently processing
+    // dead servers in the ServerManager and might not succeed.
+    final ServerName finalServerToStop = serverToStop;
+    TEST_UTIL.waitFor(WAIT_TIMEOUT, new Waiter.Predicate<Exception>() {
+      @Override
+      public boolean evaluate() throws Exception {
+        return admin.clearDeadServers(Lists.newArrayList(finalServerToStop)).isEmpty();
+      }
+    });
     // verify if the stopped region server gets cleared and removed from the group
     Set<Address> newGroupServers = rsGroupAdmin.getRSGroupInfo(newGroup.getName()).getServers();
     assertFalse(newGroupServers.contains(serverToStop.getAddress()));
