@@ -2475,13 +2475,21 @@ public class HRegionServer extends Thread implements
    */
   @Override
   public void abort(String reason, Throwable cause) {
+    synchronized (this) {
+      if (abortRequested) {
+        // Abort already in progress, ignore the new request.
+        LOG.debug(
+            "Abort already in progress. Ignoring the current request with reason: {}", reason);
+        return;
+      }
+      setAbortRequested();
+    }
     String msg = "***** ABORTING region server " + this + ": " + reason + " *****";
     if (cause != null) {
       LOG.error(HBaseMarkers.FATAL, msg, cause);
     } else {
       LOG.error(HBaseMarkers.FATAL, msg);
     }
-    setAbortRequested();
     // HBASE-4014: show list of coprocessors that were loaded to help debug
     // regionserver crashes.Note that we're implicitly using
     // java.util.HashSet's toString() method to print the coprocessor names.
