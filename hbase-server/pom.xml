@@ -622,6 +622,13 @@
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpcore</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop.hbase</groupId>
+      <artifactId>phoenix</artifactId>
+      <version>4.15.0-HBase-1.5</version>
+      <scope>system</scope>
+      <systemPath>/Users/bvissapragada/Downloads/apache-phoenix-4.15.0-HBase-1.5-bin/phoenix-4.15.0-HBase-1.5-server.jar</systemPath>
+    </dependency>
   </dependencies>
   <profiles>
     <!-- Needs to make the profile in apache parent pom -->
