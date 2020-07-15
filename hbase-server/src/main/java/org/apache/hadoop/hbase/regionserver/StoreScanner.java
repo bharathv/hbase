@@ -828,26 +828,39 @@ public class StoreScanner extends NonReversedNonLazyKeyValueScanner
     Cell nextCell = null;
     // used to guard against a changed next indexed key by doing a identity comparison
     // when the identity changes we need to compare the bytes again
-    Cell previousIndexedKey = null;
-    do {
-      Cell nextIndexedKey = getNextIndexedKey();
-      if (nextIndexedKey != null && nextIndexedKey != KeyValueScanner.NO_NEXT_INDEXED_KEY &&
-          (nextIndexedKey == previousIndexedKey ||
-          matcher.compareKeyForNextColumn(nextIndexedKey, cell) >= 0)) {
-        this.heap.next();
-        ++kvsScanned;
-        previousIndexedKey = nextIndexedKey;
-      } else {
-        return false;
-      }
-    } while ((nextCell = this.heap.peek()) != null && CellUtil.matchingRowColumn(cell, nextCell));
-    // We need this check because it may happen that the new scanner that we get
-    // during heap.next() is requiring reseek due of fake KV previously generated for
-    // ROWCOL bloom filter optimization. See HBASE-19863 for more details
-    if (nextCell != null && matcher.compareKeyForNextColumn(nextCell, cell) < 0) {
-      return false;
+    LOG.info("trySkipToNextColumn");
+    matcher.disableFilterChecks();
+    ScanQueryMatcher.MatchCode matchCode;
+    try {
+      Cell previousIndexedKey = null;
+      do {
+        LOG.info("trySkipToNextColumn1");
+        Cell nextIndexedKey = getNextIndexedKey();
+        if (nextIndexedKey != null && nextIndexedKey != KeyValueScanner.NO_NEXT_INDEXED_KEY &&
+            (nextIndexedKey == previousIndexedKey ||
+                matcher.compareKeyForNextColumn(nextIndexedKey, cell) >= 0)) {
+          this.heap.next();
+          ++kvsScanned;
+          previousIndexedKey = nextIndexedKey;
+        } else {
+          return false;
+        }
+        LOG.info("trySkipToNextColumn2");
+        nextCell = this.heap.peek();
+        LOG.info("trySkipToNextColumn3");
+        if (nextCell == null) break;
+        matchCode = matcher.match(nextCell);
+        LOG.info("match code: " + matchCode.name());
+      } while (matchCode == ScanQueryMatcher.MatchCode.SEEK_NEXT_COL);
+      // We need this check because it may happen that the new scanner that we get
+      // during heap.next() is requiring reseek due of fake KV previously generated for
+      // ROWCOL bloom filter optimization. See HBASE-19863 for more details
+      LOG.info("trySkipToNextColumn return");
+      return nextCell == null || matcher.compareKeyForNextColumn(nextCell, cell) >= 0;
+    } finally {
+      LOG.info("trySkipToNextColumn final");
+      matcher.enableFilterChecks();
     }
-    return true;
   }
 
   @Override

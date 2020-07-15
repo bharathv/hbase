@@ -52,8 +52,8 @@ public abstract class NormalUserScanQueryMatcher extends UserScanQueryMatcher {
   }
 
   @Override
-  public MatchCode match(Cell cell) throws IOException {
-    if (filter != null && filter.filterAllRemaining()) {
+  protected MatchCode matchInternal(Cell cell) throws IOException {
+    if (filter != null && filterChecksEnabled() && filter.filterAllRemaining()) {
       return MatchCode.DONE_SCAN;
     }
     MatchCode returnCode = preCheck(cell);

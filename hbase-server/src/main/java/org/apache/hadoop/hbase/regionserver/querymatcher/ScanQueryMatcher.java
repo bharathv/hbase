@@ -46,7 +46,7 @@ public abstract class ScanQueryMatcher {
    * Additionally, this contains "early-out" language to tell the scanner to move on to the next
    * File (memstore or Storefile), or to return immediately.
    */
-  public static enum MatchCode {
+  public enum MatchCode {
     /**
      * Include KeyValue in the returned result
      */
@@ -116,6 +116,9 @@ public abstract class ScanQueryMatcher {
 
   protected final long now;
 
+  protected boolean enableFilterChecks = true;
+
+
   /** Row the query is on */
   protected Cell currentRow;
 
@@ -130,6 +133,18 @@ public abstract class ScanQueryMatcher {
 
   protected static Cell createStartKeyFromRow(byte[] startRow, ScanInfo scanInfo) {
     return KeyValueUtil.createFirstDeleteFamilyOnRow(startRow, scanInfo.getFamily());
+  }
+
+  public void enableFilterChecks() {
+    enableFilterChecks = true;
+  }
+
+  public void disableFilterChecks() {
+    enableFilterChecks = false;
+  }
+
+  protected boolean filterChecksEnabled() {
+    return enableFilterChecks;
   }
 
   /**

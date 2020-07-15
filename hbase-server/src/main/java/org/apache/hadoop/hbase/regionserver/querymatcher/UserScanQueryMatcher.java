@@ -51,6 +51,9 @@ public abstract class UserScanQueryMatcher extends ScanQueryMatcher {
 
   protected final TimeRange tr;
 
+  private Cell lastMatchedCell;
+  private MatchCode lastMatchCode;
+
   private static Cell createStartKey(Scan scan, ScanInfo scanInfo) {
     if (scan.includeStartRow()) {
       return createStartKeyFromRow(scan.getStartRow(), scanInfo);
@@ -71,6 +74,17 @@ public abstract class UserScanQueryMatcher extends ScanQueryMatcher {
     } else {
       this.tr = timeRange;
     }
+  }
+
+  abstract protected MatchCode matchInternal(Cell cell) throws IOException;
+
+  @Override
+  public MatchCode match(Cell cell) throws IOException {
+    if (cell != lastMatchedCell) {
+      lastMatchedCell = cell;
+      lastMatchCode = matchInternal(cell);
+    }
+    return lastMatchCode;
   }
 
   @Override
@@ -117,7 +131,7 @@ public abstract class UserScanQueryMatcher extends ScanQueryMatcher {
     }
     ReturnCode filterResponse = ReturnCode.SKIP;
     // STEP 2: Yes, the column is part of the requested columns. Check if filter is present
-    if (filter != null) {
+    if (filter != null && filterChecksEnabled()) {
       // STEP 3: Filter the key value and return if it filters out
       filterResponse = filter.filterKeyValue(cell);
       switch (filterResponse) {
