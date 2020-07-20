@@ -21,6 +21,7 @@ import static org.apache.hadoop.hbase.master.MasterWalManager.META_FILTER;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -205,6 +206,9 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetComplet
 import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetCompletedSnapshotsResponse;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetLocksRequest;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetLocksResponse;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetMastersRequest;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetMastersResponse;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetMastersResponseEntry;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetMetaRegionLocationsRequest;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetMetaRegionLocationsResponse;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.MasterProtos.GetNamespaceDescriptorRequest;
@@ -2928,6 +2932,27 @@ public class MasterRpcServices extends RSRpcServices implements
     GetActiveMasterResponse.Builder resp = GetActiveMasterResponse.newBuilder();
     Optional<ServerName> serverName = master.getActiveMaster();
     serverName.ifPresent(name -> resp.setServerName(ProtobufUtil.toServerName(name)));
+    return resp.build();
+  }
+
+  @Override
+  public GetMastersResponse getMasters(RpcController rpcController, GetMastersRequest request)
+      throws ServiceException {
+    GetMastersResponse.Builder resp = GetMastersResponse.newBuilder();
+    // Active master
+    Optional<ServerName> serverName = master.getActiveMaster();
+    serverName.ifPresent(name -> resp.addMasterServers(GetMastersResponseEntry.newBuilder()
+        .setServerName(ProtobufUtil.toServerName(name)).setIsActive(true).build()));
+    // Backup masters
+    try {
+      // TODO: Cache the backup masters to avoid a ZK RPC for each getMasters() call.
+      for (ServerName backupMaster: master.getBackupMasters()) {
+        resp.addMasterServers(GetMastersResponseEntry.newBuilder().setServerName(
+            ProtobufUtil.toServerName(backupMaster)).setIsActive(false).build());
+      }
+    } catch (InterruptedIOException e) {
+      LOG.error("Interrupted during getMasters() RPC.", e);
+    }
     return resp.build();
   }
 
