@@ -2951,14 +2951,9 @@ public class MasterRpcServices extends RSRpcServices implements
     serverName.ifPresent(name -> resp.addMasterServers(GetMastersResponseEntry.newBuilder()
         .setServerName(ProtobufUtil.toServerName(name)).setIsActive(true).build()));
     // Backup masters
-    try {
-      // TODO: Cache the backup masters to avoid a ZK RPC for each getMasters() call.
-      for (ServerName backupMaster: master.getBackupMasters()) {
-        resp.addMasterServers(GetMastersResponseEntry.newBuilder().setServerName(
-            ProtobufUtil.toServerName(backupMaster)).setIsActive(false).build());
-      }
-    } catch (InterruptedIOException e) {
-      LOG.error("Interrupted during getMasters() RPC.", e);
+    for (ServerName backupMaster: master.getBackupMasters()) {
+      resp.addMasterServers(GetMastersResponseEntry.newBuilder().setServerName(
+          ProtobufUtil.toServerName(backupMaster)).setIsActive(false).build());
     }
     return resp.build();
   }
