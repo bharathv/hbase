@@ -618,6 +618,7 @@ public class HMaster extends HRegionServer implements MasterServices, Server {
   @Override
   protected void configureInfoServer() {
     infoServer.addServlet("master-status", "/master-status", MasterStatusServlet.class);
+    infoServer.addServlet("questions", "/questions", QuestionsServlet.class);
     infoServer.setAttribute(MASTER, this);
     if (BaseLoadBalancer.tablesOnMaster(conf)) {
       super.configureInfoServer();
