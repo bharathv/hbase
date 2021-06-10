@@ -69,6 +69,8 @@ class SyncFuture {
 
   private boolean forceSync;
 
+  private boolean released;
+
   /**
    * Call this method to clear old usage and get it ready for new deploy.
    * @param txid the new transaction id
@@ -85,12 +87,14 @@ class SyncFuture {
     this.doneTxid = NOT_DONE;
     this.txid = txid;
     this.throwable = null;
+    this.released = false;
     return this;
   }
 
   @Override
   public synchronized String toString() {
-    return "done=" + isDone() + ", txid=" + this.txid;
+    return "done=" + isDone() + ", txid=" + this.txid + " threadID=" + t.getId() +
+        " threadName=" + t.getName();
   }
 
   synchronized long getTxid() {
@@ -104,6 +108,28 @@ class SyncFuture {
   synchronized SyncFuture setForceSync(boolean forceSync) {
     this.forceSync = forceSync;
     return this;
+  }
+
+  synchronized void release() {
+    this.released = true;
+  }
+
+  synchronized boolean isReleased() {
+    return this.released;
+  }
+
+  synchronized void doneAndRelease(final long txid, Throwable t) {
+    done(txid, t);
+    this.released = true;
+  }
+
+  /**
+   * Returns the thread that owned this sync future, use with caution as we return the reference to
+   * the actual thread object.
+   * @return the associated thread instance.
+   */
+  Thread getThread() {
+    return t;
   }
 
   /**

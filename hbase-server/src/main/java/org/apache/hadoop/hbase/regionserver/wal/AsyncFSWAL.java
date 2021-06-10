@@ -397,7 +397,7 @@ public class AsyncFSWAL extends AbstractFSWAL<AsyncWriter> {
     for (Iterator<SyncFuture> iter = syncFutures.iterator(); iter.hasNext();) {
       SyncFuture sync = iter.next();
       if (sync.getTxid() <= txid) {
-        sync.done(txid, null);
+        sync.doneAndRelease(txid, null);
         iter.remove();
         finished++;
       } else {
@@ -416,7 +416,7 @@ public class AsyncFSWAL extends AbstractFSWAL<AsyncWriter> {
         long maxSyncTxid = highestSyncedTxid.get();
         for (SyncFuture sync : syncFutures) {
           maxSyncTxid = Math.max(maxSyncTxid, sync.getTxid());
-          sync.done(maxSyncTxid, null);
+          sync.doneAndRelease(maxSyncTxid, null);
         }
         highestSyncedTxid.set(maxSyncTxid);
         int finished = syncFutures.size();
@@ -531,7 +531,7 @@ public class AsyncFSWAL extends AbstractFSWAL<AsyncWriter> {
       for (Iterator<SyncFuture> syncIter = syncFutures.iterator(); syncIter.hasNext();) {
         SyncFuture future = syncIter.next();
         if (future.getTxid() < txid) {
-          future.done(future.getTxid(), error);
+          future.doneAndRelease(future.getTxid(), error);
           syncIter.remove();
         } else {
           break;
@@ -796,7 +796,7 @@ public class AsyncFSWAL extends AbstractFSWAL<AsyncWriter> {
       }
     }
     // and fail them
-    syncFutures.forEach(f -> f.done(f.getTxid(), error));
+    syncFutures.forEach(f -> f.doneAndRelease(f.getTxid(), error));
     if (!(consumeExecutor instanceof EventLoop)) {
       consumeExecutor.shutdown();
     }

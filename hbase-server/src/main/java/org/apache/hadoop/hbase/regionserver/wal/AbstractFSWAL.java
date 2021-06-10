@@ -494,12 +494,7 @@ public abstract class AbstractFSWAL<W extends WriterBase> implements WAL {
       DEFAULT_SLOW_SYNC_ROLL_INTERVAL_MS);
     this.walSyncTimeoutNs = TimeUnit.MILLISECONDS.toNanos(conf.getLong(WAL_SYNC_TIMEOUT_MS,
       DEFAULT_WAL_SYNC_TIMEOUT_MS));
-    this.cachedSyncFutures = new ThreadLocal<SyncFuture>() {
-      @Override
-      protected SyncFuture initialValue() {
-        return new SyncFuture();
-      }
-    };
+    this.cachedSyncFutures = ThreadLocal.withInitial(SyncFuture::new);
     this.implClassName = getClass().getSimpleName();
     this.walTooOldNs = TimeUnit.SECONDS.toNanos(conf.getInt(
             SURVIVED_TOO_LONG_SEC_KEY, SURVIVED_TOO_LONG_SEC_DEFAULT));
@@ -885,10 +880,6 @@ public abstract class AbstractFSWAL<W extends WriterBase> implements WAL {
         }
       }
     } catch (TimeoutIOException tioe) {
-      // SyncFuture reuse by thread, if TimeoutIOException happens, ringbuffer
-      // still refer to it, so if this thread use it next time may get a wrong
-      // result.
-      this.cachedSyncFutures.remove();
       throw tioe;
     } catch (InterruptedException ie) {
       LOG.warn("Interrupted", ie);
@@ -1049,7 +1040,11 @@ public abstract class AbstractFSWAL<W extends WriterBase> implements WAL {
   }
 
   protected final SyncFuture getSyncFuture(long sequence, boolean forceSync) {
-    return cachedSyncFutures.get().reset(sequence).setForceSync(forceSync);
+    SyncFuture current = cachedSyncFutures.get();
+    if (!current.isReleased()) {
+      current = new SyncFuture();
+    }
+    return current.reset(sequence).setForceSync(forceSync);
   }
 
   protected boolean isLogRollRequested() {
